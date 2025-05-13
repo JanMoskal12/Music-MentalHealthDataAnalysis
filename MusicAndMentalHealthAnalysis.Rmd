@@ -1,0 +1,104 @@
+---
+title: "Music and Mental Health"
+author: "Jan Moskal"
+date: "2025-05-13"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r, include=FALSE, warning=FALSE, message=FALSE}
+library(tidyverse)
+library(tidymodels)
+library(DescTools)
+```
+
+
+### Wczytanie i obróbka danych
+```{r}
+df <- read_csv("mxmh_survey_results.csv", col_names = TRUE)
+head(df)
+```
+
+#### Usuwanie zbędnych zmiennych
+```{r}
+df <- df %>% 
+        select(-c(Timestamp, Anxiety, Insomnia, OCD, `Music effects`, Permissions))
+```
+
+```{r}
+glimpse(df)
+```
+
+#### Ustawianie odpowiedniej kolejności poziomów w zmiennych dotyczących częstotliwości słuchania konkretnych gatunków
+```{r}
+custom_levels <- c("Never", "Rarely", "Sometimes", "Very frequently")
+
+df <- df %>% 
+        mutate(across(`Frequency [Classical]`:`Frequency [Video game music]`, function(x) factor(x, levels = custom_levels, ordered = TRUE)))
+```
+
+#### Ustawienie pozostałych zmiennych typu znakowego na zmienne kategoryczne
+```{r}
+df <- df %>% 
+        mutate(across(`While working`:`Foreign languages`, as.factor),
+               `Primary streaming service` = as.factor(`Primary streaming service`))
+```
+
+#### Zamiana wieku na zmienną kategoryczną
+```{r}
+df %>% 
+  ggplot(aes(x = Age)) +
+  geom_histogram(bins = 75)
+```
+
+```{r}
+df <- df %>% 
+  mutate(Age = cut(Age, breaks = c(0, 22, 40, Inf), labels = c("Youth", "Adult", "Senior"), right = TRUE))
+```
+
+```{r}
+df %>% 
+  mutate(Age = cut(Age, breaks = c(0, 22, 40, Inf), labels = c("Youth", "Adult", "Senior"), right = TRUE)) %>% 
+  filter(!is.na(Age)) %>%
+  ggplot(aes(x = Age, fill=Age)) +
+  geom_bar()
+```
+
+#### Zamiana zmiennej objaśnianej typu numerycznego na typ kategoryczny z trzema kategoriami
+```{r}
+quantiles <- quantile(df$Depression, probs = c(0.33, 0.66), na.rm = TRUE)
+
+df %>%
+  ggplot(aes(x = Depression)) +
+  geom_histogram(binwidth = 1, fill = "lightblue", color = "black") +
+  geom_vline(xintercept = quantiles, color = "red", linetype = "dashed", size = 1) +
+  labs(title = "Histogram poziomu depresji",
+       x = "Poziom depresji", y = "Liczba wystąpień")
+```
+```{r}
+df <- df %>%
+  mutate(Depression = case_when(
+    Depression <= quantiles[1] ~ "Low", # 0-3
+    Depression > quantiles[1] & Depression < quantiles[2] ~ "Medium", # 4-6
+    Depression >= quantiles[2] ~ "High" # 7-10
+  ))
+```
+
+```{r}
+df %>% 
+  ggplot(aes(x = Depression, fill = Depression)) + 
+  geom_bar()
+```
+
+#### Wyniki czyszczenia i transformacji danych do EDA
+```{r}
+#saveRDS(df, "df_EDA.rds")
+```
+
+```{r}
+summary(is.na(df))
+```
+
