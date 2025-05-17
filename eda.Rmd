@@ -1,0 +1,198 @@
+---
+title: "Music & Mental Health - Exploratory Data Analysis"
+author: "Jan Moskal"
+date: "2025-05-17"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r, include=FALSE, message=FALSE, warning=FALSE}
+library(tidyverse)
+```
+
+
+### Wczytanie danych i wstępny wgląd w te dane
+```{r}
+data <- readRDS("df_EDA.rds")
+df <- readRDS("df.rds")
+
+head(data)
+```
+
+```{r}
+glimpse(data)
+```
+
+```{r}
+df_freq <- data %>% 
+            select(`Frequency [Classical]`:Depression)
+```
+
+### Wizualizacja liczby obserwacji dla (Frequency + Genre)
+```{r}
+long_freq_count <- data %>%
+                    pivot_longer(cols = starts_with("Frequency ["),
+                                 names_to = "Genre",
+                                 values_to = "Frequency") %>%
+                    mutate(Genre = str_remove_all(Genre, "Frequency \\[|\\]"))  
+
+heat_df_count <- long_freq_count %>%
+                  count(Genre, Frequency)
+
+ggplot(heat_df_count, aes(x = Genre, y = Frequency, fill = n)) +
+  geom_tile(color = "white") +
+  geom_text(aes(label = n), color = "black", size = 3) +
+  scale_fill_gradient(low = "lightyellow", high = "steelblue") +
+  theme_minimal() +
+  labs(
+    title = "Liczba obserwacji dla kombinacji gatunku vs częstotliwości słuchania",
+    x = "Gatunek muzyki",
+    y = "Częstotliwość słuchania",
+    fill = "Liczba"
+  ) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+```
+
+### Wizualizacja zmiennych (Frequency vs Genre) vs Depression
+```{r, warning=FALSE}
+df_freq_depr <- df_freq %>%
+                  mutate(Depression_num = recode(Depression,
+                                                 "Low" = 0,
+                                                 "Medium" = 1,
+                                                 "High" = 2))
+
+freq_cols <- grep("^Frequency \\[", names(data), value = TRUE)
+
+df_long_depr <- df_freq_depr %>%
+                  select(all_of(c("Depression_num", freq_cols))) %>%
+                  pivot_longer(cols = all_of(freq_cols),
+                               names_to = "Genre",
+                               values_to = "Frequency")
+
+heat_df_depr <- df_long_depr %>%
+                  group_by(Genre, Frequency) %>%
+                  summarise(mean_depression = mean(Depression_num, na.rm = TRUE)) %>%
+                  ungroup()
+
+heat_df_depr <- heat_df_depr %>%
+                  mutate(Genre_clean = gsub("Frequency \\[|\\]", "", Genre))
+
+ggplot(heat_df_depr, aes(x = Genre_clean, y = Frequency, fill = mean_depression)) +
+  geom_tile(color = "white") +
+  geom_text(aes(label = round(mean_depression, 2)), size = 3, color = "black") +
+  scale_fill_gradient(low = "lightblue", high = "darkred", na.value = "grey80") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1),
+        panel.grid = element_blank()) +
+  labs(
+    title = "Średni poziom depresji vs słuchalność gatunków muzyki",
+    x = "Gatunek muzyki",
+    y = "Poziom słuchalności",
+    fill = "Średni poziom depresji"
+  )
+```
+
+
+### Wizualizacja zmiennych Frequency vs Depression
+```{r}
+long_df_depr <- df_freq_depr %>%
+                  select(starts_with("Frequency"), Depression) %>%
+                  pivot_longer(
+                    cols = starts_with("Frequency"),
+                    names_to = "Genre",
+                    values_to = "Frequency"
+                  ) %>%
+                  mutate(
+                    Depression = case_when(
+                      Depression == "Low" ~ 0,
+                      Depression == "Medium" ~ 1,
+                      Depression == "High" ~ 2
+                    )
+                  )
+
+freq_df_depr <- long_df_depr %>%
+                  group_by(Frequency) %>%
+                  summarise(mean_depression = mean(Depression, na.rm = TRUE), .groups = "drop")
+
+ggplot(freq_df_depr, aes(x = Frequency, y = mean_depression, fill = Frequency)) +
+  geom_col(width = 0.6) +
+  geom_text(aes(label = round(mean_depression, 2)), vjust = -0.5, size = 4) +
+  scale_fill_brewer(palette = "Blues", direction = 1) +
+  ylim(0, 2) +
+  theme_minimal() +
+  theme(legend.position = "none") +
+  labs(
+    title = "Średni poziom depresji vs częstotliwość słuchania muzyki",
+    x = "Częstotliwość słuchania",
+    y = "Średni poziom depresji"
+  )
+```
+
+### Wizualizacja zmiennych (Frequency + Genre) vs Hours per day
+```{r}
+df_hours <- data %>% 
+              select(`Frequency [Classical]`:`Frequency [Video game music]`, `Hours per day`)
+
+freq_cols <- grep("^Frequency \\[", names(data), value = TRUE)
+
+df_long_hours <- df_hours %>%
+            select(all_of(c("Hours per day", freq_cols))) %>%
+            pivot_longer(cols = all_of(freq_cols),
+                         names_to = "Genre",
+                         values_to = "Frequency")
+
+heat_df_hours <- df_long_hours %>%
+                  group_by(Genre, Frequency) %>%
+                  summarise(mean_hours_per_day = mean(`Hours per day`, na.rm = TRUE)) %>%
+                  ungroup()
+
+heat_df_hours <- heat_df_hours %>%
+                  mutate(Genre_clean = gsub("Frequency \\[|\\]", "", Genre))
+
+ggplot(heat_df_hours, aes(x = Genre_clean, y = Frequency, fill = mean_hours_per_day)) +
+  geom_tile(color = "white") +
+  geom_text(aes(label = round(mean_hours_per_day, 2)), size = 3, color = "black") +
+  scale_fill_gradient(low = "lightblue", high = "darkred", na.value = "grey80") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1),
+        panel.grid = element_blank()) +
+  labs(
+    title = "Średni liczba przesłuchanych godzin vs słuchalność gatunków muzyki",
+    x = "Gatunek muzyki",
+    y = "Poziom słuchalności",
+    fill = "Średnia liczba godzin"
+  )
+```
+
+### Wizualizacje Frequency vs Hours per day
+```{r}
+long_df_hours <- df_hours %>%
+            select(starts_with("Frequency"), `Hours per day`) %>%
+            pivot_longer(
+              cols = starts_with("Frequency"),
+              names_to = "Genre",
+              values_to = "Frequency"
+            )
+
+freq_df_hours <- long_df_hours %>%
+            group_by(Frequency) %>%
+            summarise(mean_hours_per_day = mean(`Hours per day`, na.rm = TRUE), .groups = "drop")
+
+ggplot(freq_df_hours, aes(x = Frequency, y = mean_hours_per_day, fill = Frequency)) +
+  geom_col(width = 0.6) +
+  geom_text(aes(label = round(mean_hours_per_day, 2)), vjust = -0.5, size = 4) +
+  scale_fill_brewer(palette = "Blues", direction = 1) +
+  ylim(0, 5) +
+  theme_minimal() +
+  theme(legend.position = "none") +
+  labs(
+    title = "Średni liczba przesłuchanych godzin vs częstotliwość słuchania muzyki",
+    x = "Częstotliwość słuchania",
+    y = "Średnia liczba godzin"
+  )
+```
+

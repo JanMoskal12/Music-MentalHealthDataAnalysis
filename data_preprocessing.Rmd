@@ -1,5 +1,5 @@
 ---
-title: "Music and Mental Health"
+title: "Music and Mental Health - Data Preprocessing"
 author: "Jan Moskal"
 date: "2025-05-13"
 output: html_document
@@ -11,7 +11,6 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ```{r, include=FALSE, warning=FALSE, message=FALSE}
 library(tidyverse)
-library(tidymodels)
 library(DescTools)
 ```
 
@@ -97,8 +96,3 @@ df %>%
 ```{r}
 #saveRDS(df, "df_EDA.rds")
 ```
-
-```{r}
-summary(is.na(df))
-```
-
