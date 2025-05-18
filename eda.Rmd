@@ -313,5 +313,47 @@ ggplot(summary_df, aes(x = Genre, y = Frequency, fill = total)) +
     fill = "Liczba ogółem"
   ) +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
-
 ```
+
+### Związek między [...] a częstotliwością słuchaniem różnych gatunków muzyki
+```{r}
+# Lista zmiennych binarnych do analizy
+binary_vars <- c("Instrumentalist", "While working", "Composer", "Exploratory", "Foreign languages")
+
+# Przekształcenie danych do formatu długiego
+long_bin_all <- data %>%
+  select(all_of(freq_cols), all_of(binary_vars)) %>%
+  pivot_longer(cols = all_of(freq_cols), names_to = "Genre", values_to = "Frequency") %>%
+  mutate(Genre = str_remove_all(Genre, "Frequency \\[|\\]"))
+
+# Funkcja do rysowania heatmapy dla danej zmiennej binarnej
+plot_binary_heatmap <- function(df, bin_var) {
+  df %>%
+    mutate(!!bin_var := as.character(.data[[bin_var]])) %>%
+    group_by(Genre, Frequency) %>%
+    summarise(
+      Count = sum(.data[[bin_var]] == "Yes", na.rm = TRUE),
+      Total = n(),
+      Prop = Count / Total,
+      .groups = "drop"
+    ) %>%
+    ggplot(aes(x = Genre, y = Frequency, fill = Prop)) +
+      geom_tile(color = "white") +
+      geom_text(aes(label = Count), color = "black", size = 3) +
+      scale_fill_gradient(low = "lightblue", high = "darkblue", na.value = "grey80") +
+      theme_minimal() +
+      theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+      labs(
+        title = paste0(bin_var, " vs słuchalność gatunków"),
+        x = "Gatunek muzyki",
+        y = "Częstotliwość słuchania",
+        fill = "Proporcja"
+      )
+}
+
+for (var in binary_vars) {
+  print(plot_binary_heatmap(long_bin_all, var))
+}
+```
+
+
