@@ -13,8 +13,8 @@ knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
 ```
 
-
 ### Wczytanie danych i wstępny wgląd w te dane
+
 ```{r}
 data <- readRDS("df_EDA.rds")
 df <- readRDS("df.rds")
@@ -32,6 +32,7 @@ df_freq <- data %>%
 ```
 
 ### Wizualizacja liczby obserwacji dla (Frequency + Genre)
+
 ```{r}
 long_freq_count <- data %>%
                     pivot_longer(cols = starts_with("Frequency ["),
@@ -58,6 +59,7 @@ ggplot(heat_df_count, aes(x = Genre, y = Frequency, fill = n)) +
 ```
 
 ### Wizualizacja zmiennych (Frequency vs Genre) vs Depression
+
 ```{r, warning=FALSE}
 df_freq_depr <- df_freq %>%
                   mutate(Depression_num = recode(Depression,
@@ -96,8 +98,53 @@ ggplot(heat_df_depr, aes(x = Genre_clean, y = Frequency, fill = mean_depression)
   )
 ```
 
+### Wizualizacja korelacji Spearmana częstotliwości słuchania gatunku z poziomem depresji
+
+```{r}
+df_freq_depr <- data %>%
+                  mutate(Depression = recode(Depression,
+                                                 "Low" = 0,
+                                                 "Medium" = 1,
+                                                 "High" = 2))
+long_freq <- df_freq_depr %>%
+  pivot_longer(
+    cols = starts_with("Frequency ["),
+    names_to = "Genre",
+    values_to = "Frequency"
+  ) %>%
+  mutate(
+    Genre = str_remove_all(Genre, "Frequency \\[|\\]"),
+    Depression = as.numeric(Depression)
+  )
+
+freq_levels <- c("Never", "Rarely", "Sometimes", "Very frequently")
+long_freq$Frequency <- factor(long_freq$Frequency, levels = freq_levels, ordered = TRUE)
+long_freq$Frequency_num <- as.numeric(long_freq$Frequency)
+
+correlations <- long_freq %>%
+  group_by(Genre) %>%
+  summarise(
+    cor = cor(Frequency_num, Depression, method = "spearman"),
+    n = n(),
+    .groups = "drop"
+  ) %>%
+  arrange(cor)
+
+ggplot(correlations, aes(x = reorder(Genre, cor), y = cor)) +
+  geom_col(fill = ifelse(correlations$cor > 0, "firebrick", "steelblue")) +
+  geom_text(aes(label = round(cor, 2)), vjust = ifelse(correlations$cor > 0, -0.5, 1.5), color = "black") +
+  theme_minimal() +
+  ylim(-0.05, 0.2) +
+  labs(
+    title = "Korelacja Spearmana częstotliwości słuchania gatunku z poziomem depresji",
+    x = "Gatunek muzyczny",
+    y = "Korelacja Spearmana"
+  ) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
 
 ### Wizualizacja zmiennych Frequency vs Depression
+
 ```{r}
 long_df_depr <- df_freq_depr %>%
                   select(starts_with("Frequency"), Depression) %>%
@@ -133,6 +180,7 @@ ggplot(freq_df_depr, aes(x = Frequency, y = mean_depression, fill = Frequency)) 
 ```
 
 ### Wizualizacja zmiennych (Frequency + Genre) vs Hours per day
+
 ```{r}
 df_hours <- data %>% 
               select(`Frequency [Classical]`:`Frequency [Video game music]`, `Hours per day`)
@@ -169,6 +217,7 @@ ggplot(heat_df_hours, aes(x = Genre_clean, y = Frequency, fill = mean_hours_per_
 ```
 
 ### Wizualizacje Frequency vs Hours per day
+
 ```{r}
 long_df_hours <- df_hours %>%
             select(starts_with("Frequency"), `Hours per day`) %>%
@@ -196,3 +245,73 @@ ggplot(freq_df_hours, aes(x = Frequency, y = mean_hours_per_day, fill = Frequenc
   )
 ```
 
+### Wizualizacja zmiennych (Frequency + Genre) vs Age
+
+```{r}
+df_age <- df %>% 
+              select(`Frequency [Classical]`:`Frequency [Video game music]`, Age)
+
+freq_cols <- grep("^Frequency \\[", names(data), value = TRUE)
+
+df_long_age <- df_age %>%
+                select(all_of(c("Age", freq_cols))) %>%
+                pivot_longer(cols = all_of(freq_cols),
+                             names_to = "Genre",
+                             values_to = "Frequency")
+
+heat_df_age <- df_long_age %>%
+                  group_by(Genre, Frequency) %>%
+                  summarise(mean_age = mean(Age, na.rm = TRUE)) %>%
+                  ungroup()
+
+heat_df_age <- heat_df_age %>%
+                  mutate(Genre_clean = gsub("Frequency \\[|\\]", "", Genre))
+
+ggplot(heat_df_age, aes(x = Genre_clean, y = Frequency, fill = mean_age)) +
+  geom_tile(color = "white") +
+  geom_text(aes(label = round(mean_age, 1)), size = 3, color = "black") +
+  scale_fill_gradient(low = "lightblue", high = "darkred", na.value = "grey80") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1),
+        panel.grid = element_blank()) +
+  labs(
+    title = "Średni wiek słuchającego vs słuchalność gatunków muzyki",
+    x = "Gatunek muzyki",
+    y = "Poziom słuchalności",
+    fill = "Średnia wiek"
+  )
+```
+
+### Wizualizacja zmiennych (Frequency + Genre) vs Fav genre
+```{r}
+long_freq <- data %>%
+  pivot_longer(cols = starts_with("Frequency ["),
+               names_to = "Genre",
+               values_to = "Frequency") %>%
+  mutate(Genre = str_remove_all(Genre, "Frequency \\[|\\]"))
+
+long_freq_labeled <- long_freq %>%
+                      mutate(is_fav = ifelse(Genre == `Fav genre`, 1, 0))
+
+summary_df <- long_freq_labeled %>%
+  group_by(Genre, Frequency) %>%
+  summarise(
+    total = n(),
+    fav_count = sum(is_fav, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+ggplot(summary_df, aes(x = Genre, y = Frequency, fill = total)) +
+  geom_tile(color = "white") +
+  geom_text(aes(label = fav_count), color = "black", size = 3) +
+  scale_fill_gradient(low = "lightyellow", high = "darkblue") +
+  theme_minimal() +
+  labs(
+    title = "Ulubiony gatunek w kontekście częstotliwości słuchania",
+    x = "Gatunek",
+    y = "Częstotliwość słuchania",
+    fill = "Liczba ogółem"
+  ) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+```
