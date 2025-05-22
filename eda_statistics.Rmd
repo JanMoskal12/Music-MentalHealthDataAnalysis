@@ -1,0 +1,39 @@
+---
+title: "Music & Mental Health - Exploratory Data Analysis"
+author: "Jan Moskal"
+date: "2025-05-22"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r, include=FALSE, warning=FALSE, message=FALSE}
+library(tidyverse)
+library(ggcorrplot)
+library(psych)
+```
+
+```{r}
+data <- readRDS("df_EDA.rds")
+df <- readRDS("df.rds")
+```
+
+
+## Statystyki opisowe
+### Statystyki opisowe dla zmiennych numerycznych
+```{r}
+df %>%
+  dplyr::select(where(is.numeric)) %>%
+  summary()
+```
+
+### Wykres macierzy korelacji dla zmiennych numerycznych
+```{r}
+df %>%
+  select(where(is.numeric)) %>%
+  cor(use = "complete.obs") %>%
+  round(2) %>% 
+  ggcorrplot(lab = TRUE)
+```
