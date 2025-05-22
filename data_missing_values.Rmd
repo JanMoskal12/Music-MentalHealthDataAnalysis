@@ -1,0 +1,51 @@
+---
+title: "Music & Mental Health - Dealing with Missing Data"
+author: "Jan Moskal"
+date: "2025-05-22"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r, include=FALSE, message=FALSE, warning=FALSE}
+library(tidyverse)
+library(kableExtra)
+library(Metrics)
+library(mice)
+library(VIM)
+```
+
+```{r}
+data <- readRDS("df_EDA.rds")
+df <- readRDS("df.rds")
+
+df <- df %>% 
+        mutate(Depression = case_when(Depression <= 3 ~ "Low",
+                                      Depression > 3 & Depression < 7 ~ "Medium",
+                                      Depression >= 7 ~ "High"),
+               Depression = factor(Depression, levels = c("Low", "Medium", "High")))
+
+head(df)
+```
+
+### Liczba braków danych
+```{r}
+sum(is.na(df))
+```
+
+### Liczba braków danych dla każdej kolumny 
+```{r}
+colSums(is.na(df))
+```
+
+### Liczba braków danych dla wierszy
+```{r}
+md.pattern(df, rotate.names = TRUE)
+```
+
+### Proporcje braków danych według kolumn
+```{r}
+aggr(df)
+```

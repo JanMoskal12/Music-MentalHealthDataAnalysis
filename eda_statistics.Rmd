@@ -12,7 +12,7 @@ knitr::opts_chunk$set(echo = TRUE)
 ```{r, include=FALSE, warning=FALSE, message=FALSE}
 library(tidyverse)
 library(ggcorrplot)
-library(psych)
+library(e1071)
 ```
 
 ```{r}
@@ -21,11 +21,10 @@ df <- readRDS("df.rds")
 ```
 
 
-## Statystyki opisowe
-### Statystyki opisowe dla zmiennych numerycznych
+### Podstawowe statystyki opisowe dla zmiennych numerycznych
 ```{r}
 df %>%
-  dplyr::select(where(is.numeric)) %>%
+  select(where(is.numeric)) %>%
   summary()
 ```
 
@@ -37,3 +36,13 @@ df %>%
   round(2) %>% 
   ggcorrplot(lab = TRUE)
 ```
+
+### Zestawienie liczby braków danych
+```{r}
+df %>%
+  summarise_all(~sum(is.na(.))) %>%
+  pivot_longer(everything(), names_to = "Zmienna", values_to = "Liczba braków") %>%
+  filter(`Liczba braków` > 0) %>% 
+  arrange(desc(`Liczba braków`))
+```
+
