@@ -60,7 +60,6 @@ df <- df %>%
 
 ```{r}
 df %>% 
-  mutate(Age = cut(Age, breaks = c(0, 22, 40, Inf), labels = c("Youth", "Adult", "Senior"), right = TRUE)) %>% 
   filter(!is.na(Age)) %>%
   ggplot(aes(x = Age, fill=Age)) +
   geom_bar()

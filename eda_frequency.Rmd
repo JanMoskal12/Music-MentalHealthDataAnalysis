@@ -197,3 +197,5 @@ plot_binary_heatmap(long_bin_all, "Exploratory") +
 plot_binary_heatmap(long_bin_all, "Foreign languages") +
   labs(title = "Udział słuchaczy muzyki w językach obcych dla nich względem gatunku i częstotliwości słuchania", fill = "Udział w języku obcym")
 ```
+
+

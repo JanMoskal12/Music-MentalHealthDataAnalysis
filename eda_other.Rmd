@@ -181,3 +181,35 @@ plot_distribution(data, `Foreign languages`, "Rozkład słuchania w obcym język
 ```{r}
 plot_prop_bar(data, `Foreign languages`, "Proporcje słuchania w obcym języku wg depresji", "Poziom depresji", "Udział", "Słuchanie w obcym języku")
 ```
+## Statystyki 
+
+### Statystyki opisowe dla zmiennych liczbowych
+
+```{r}
+data %>%
+  select(where(is.numeric)) %>%
+  summary()
+```
+
+### Dodatkowo: odchylenie standardowe, skośność, kurtoza
+
+```{r, warning=FALSE, message=FALSE}
+library(psych)
+(data %>%
+  mutate(Age = as.numeric(Age)) %>% 
+  select(where(is.numeric)) %>%
+  psych::describe())[,c(4, 6,7,10:13)]
+```
+
+
+### Macierz korelacji dla zmiennych liczbowych
+
+```{r}
+data %>%
+  mutate(Age = as.numeric(Age)) %>% 
+  select(where(is.numeric)) %>%
+  cor(use = "complete.obs") %>%
+  round(2)
+```
+
+
