@@ -1,7 +1,7 @@
 ---
-title: "Music & Mental Health - Exploratory Data Analysis"
+title: "Untitled"
 author: "Jan Moskal"
-date: "2025-05-21"
+date: "2025-05-22"
 output: html_document
 ---
 
@@ -13,44 +13,61 @@ knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
 library(patchwork)
 library(scales)
-library(Polychrome)
-```
 
-```{r}
-colors <- c("#FFB300", "#803E75", "#FF6800", "#A6BDD7", "#C10020", "#CEA262", "#817066", "#007D34", "#F6768E", "#00538A", "#FF7A5C", "#53377A", "#FF8E00", "#B32851", "#F4C800", "#7F180D")
-```
+colors <- c("#FFB300", "#803E75", "#FF6800", "#A6BDD7", "#C10020", "#CEA262", "#817066", 
+            "#007D34", "#F6768E", "#00538A", "#FF7A5C", "#53377A", "#FF8E00", "#B32851", 
+            "#F4C800", "#7F180D")
 
-
-### Wczytanie danych
-```{r}
 data <- readRDS("df_EDA.rds")
 df <- readRDS("df.rds")
-
-head(data)
-glimpse(data)
 ```
 
-### Rozkład wieku słuchaczy
+```{r}
+plot_distribution <- function(df, var, title, xlab, fill_colors = NULL){
+  df %>%
+    drop_na({{var}}) %>%
+    mutate({{var}} := fct_infreq({{var}})) %>%
+    ggplot(aes(x = {{var}}, fill = {{var}})) +
+    geom_bar() +
+    theme_minimal() +
+    theme(legend.position = "none", axis.text.x = element_text(angle = 45, hjust = 1)) +
+    labs(title = title, x = xlab, y = "Liczba osób")
+}
+
+plot_boxplot <- function(df, xvar, yvar, title, xlab, ylab){
+  df %>%
+    drop_na({{yvar}}) %>% 
+    mutate({{xvar}} := factor({{xvar}}, levels = c("Low", "Medium", "High"))) %>%
+    ggplot(aes(x = {{xvar}}, y = {{yvar}}, fill = {{xvar}})) +
+    geom_boxplot() +
+    theme_minimal() +
+    theme(legend.position = "none") +
+    labs(title = title, x = xlab, y = ylab)
+}
+
+plot_prop_bar <- function(df, fill_var, title, xlab, ylab, fill_lab){
+  df %>%
+    drop_na(Depression, {{fill_var}}) %>%
+    mutate(Depression = factor(Depression, levels = c("Low", "Medium", "High"))) %>%
+    group_by(Depression, {{fill_var}}) %>%
+    summarise(count = n(), .groups = "drop") %>%
+    group_by(Depression) %>%
+    mutate(prop = count / sum(count)) %>%
+    ggplot(aes(x = Depression, y = prop, fill = {{fill_var}})) +
+    geom_bar(stat = "identity", position = "stack") +
+    theme_minimal() +
+    labs(title = title, x = xlab, y = ylab, fill = fill_lab)
+}
+```
+
+
+
+### Rozkład wieku słuchacza
 ```{r, warning=FALSE}
-p1 <- df %>% 
-        ggplot(aes(x = Age)) +
-        geom_histogram(color = "blue", fill = "lightblue", bins = 40) + 
-        labs(x = "Wiek słuchacza", y = "Liczba osób")
-
-p2 <- data %>%
-        drop_na(Age) %>% 
-        ggplot(aes(x = Age, fill = Age)) + 
-        geom_bar() +
-        scale_x_discrete(labels = c("Youth (10-22)", "Adult (23-40)", "Senior (41-89)")) + 
-        theme_minimal() +
-        theme(legend.position = "none") + 
-        labs(x = "Grupa wiekowa słuchacza", y = "Liczba osób")
-
-
-(p1 + p2) +
-  plot_annotation(title = "Rozkład wieku słuchaczy") &
-  theme(axis.title.y = element_text(angle = 90))  
-
+df %>% 
+  ggplot(aes(x = Age)) +
+  geom_histogram(color = "blue", fill = "lightblue", bins = 40) + 
+  labs(title = "Rozkład wieku słuchacza", x = "Wiek słuchacza", y = "Liczba osób")
 ```
 
 ### Związek między wiekiem słuchającego a poziomem depresji
@@ -67,29 +84,12 @@ df %>%
 
 ### Rozkład preferowanego serwisu streamingowego
 ```{r}
-data %>% 
-  drop_na(`Primary streaming service`) %>%
-  mutate(`Primary streaming service` = fct_infreq(`Primary streaming service`)) %>%  
-  ggplot(aes(x = `Primary streaming service`, fill = `Primary streaming service`)) +
-  geom_bar() +
-  theme_minimal() + 
-  theme(legend.position = "none", axis.text.x = element_text(angle = 45, hjust = 1)) +
-  labs(title = "Rozkład preferowanego serwisu streamingowego", x = "Preferowany serwis streamingowy", y = "Liczba osób")
+plot_distribution(data, `Primary streaming service`, "Rozkład preferowanego serwisu streamingowego", "Preferowany serwis streamingowy")
 ```
 
-### Związek między preferowaną platformą streamingową a poziomem depresji
+### Proporcje platform streamingowych wg poziomu depresji
 ```{r}
-data %>%
-  drop_na(Depression, `Primary streaming service`) %>%
-  mutate(Depression = factor(Depression, levels = c("Low", "Medium", "High"))) %>%
-  group_by(Depression, `Primary streaming service`) %>%
-  summarise(count = n(), .groups = "drop") %>%
-  group_by(Depression) %>%
-  mutate(prop = count / sum(count)) %>%
-  ggplot(aes(x = Depression, y = prop, fill = `Primary streaming service`)) +
-  geom_bar(stat = "identity", position = "stack") +
-  theme_minimal() +
-  labs(title = "Proporcje platform streamingowych w zależności od poziomu depresji", x = "Poziom depresji", y = "Udział", fill = "Platforma streamingowa") 
+plot_prop_bar(data, `Primary streaming service`, "Proporcje platform streamingowych wg poziomu depresji", "Poziom depresji", "Udział", "Platforma streamingowa")
 ```
 
 ### Rozkład dziennego czasu słuchania muzyki
@@ -101,193 +101,83 @@ data %>%
   labs(title = "Rozkład dziennego czasu słuchania muzyki", x = "Liczba godzin", y = "Liczba osób")
 ```
 
-### Związek między liczbą przesłuchanych godzin dziennie a poziomem depresji
+### Związek między liczbą przesłuchanych godzin a poziomem
 ```{r}
-data %>% 
-  mutate(Depression = factor(Depression, levels = c("Low", "Medium", "High"))) %>% 
-  ggplot(aes(x = Depression, y = `Hours per day`, fill = Depression)) +
-  geom_boxplot() +
-  theme_minimal() +
-  theme(legend.position = "none") +
-  labs(title = "Związek między liczbą przesłuchanych godzin dziennie a poziomem depresji", x = "Poziom depresji", y = "Liczba godzin")
+plot_boxplot(data, Depression, `Hours per day`, "Związek między liczbą przesłuchanych godzin a poziomem depresji", "Poziom depresji", "Liczba godzin")
 ```
 
 ### Rozkład ulubionego gatunku muzycznego
 ```{r}
-data %>% 
-  mutate(`Fav genre` = fct_infreq(`Fav genre`)) %>%  
-  ggplot(aes(x = `Fav genre`, fill = `Fav genre`)) +
-  geom_bar() +
-  theme_minimal() +
-  theme(legend.position = "none", axis.text.x = element_text(angle = 45, hjust = 1)) +
-  labs(title = "Rozkład ulubionego gatunku muzycznego", x = "Ulubiony gatunek muzyczny", y = "Liczba osób")
+plot_distribution(data, `Fav genre`, "Rozkład ulubionego gatunku muzycznego", "Ulubiony gatunek muzyczny", fill_colors = colors)
 ```
 
-### Związek między ulubionym gatunkiem muzycznym a poziomem depresji
+### Proporcje ulubionego gatunku wg poziomu depresji
 ```{r}
-data %>%
-  mutate(Depression = factor(Depression, levels = c("Low", "Medium", "High"))) %>%
-  group_by(Depression, `Fav genre`) %>%
-  summarise(count = n(), .groups = "drop") %>%
-  group_by(Depression) %>%
-  mutate(prop = count / sum(count)) %>%
-  ggplot(aes(x = Depression, y = prop, fill = `Fav genre`)) +
-  geom_bar(stat = "identity", position = "stack") +
-  scale_fill_manual(values = colors) +
-  theme_minimal() +
-  labs(title = "Proporcje ulubionego gatunku według poziomu depresji", x = "Poziom depresji", y = "Udział", fill = "Gatunek") 
+plot_prop_bar(data, `Fav genre`, "Proporcje ulubionego gatunku wg poziomu depresji", "Poziom depresji", "Udział", "Gatunek")
 ```
 
-### Rozkład liczby uderzeń na minutę (BPM) dla ulubionego gatunku muzycznego
+### Rozkład liczby uderzeń na minutę (BPM)
 ```{r}
 data %>%
-  drop_na(BPM) %>% 
-  filter(BPM < 500) %>% 
+  drop_na(BPM) %>%
+  filter(BPM < 500) %>%
   ggplot(aes(x = BPM)) + 
   geom_histogram(color = "blue", fill = "lightblue", bins = 22) +
   theme_minimal() + 
-  labs(title = "Rozkład liczby uderzeń na minutę (BPM) dla ulubionego gatunku muzycznego", x = "Liczba uderzeń na minutę (BPM)", y = "Liczba osób")
+  labs(title = "Rozkład liczby uderzeń na minutę (BPM)", x = "Liczba uderzeń na minutę", y = "Liczba osób")
 ```
 
-### Związek między uderzeniami na minutę (BPM) ulubionego gatunku muzycznego a poziomem depresji
+### Związek między BPM ulubionego gatunku a poziomem depresji
 ```{r}
-data %>% 
-  drop_na(BPM) %>% 
-  filter(BPM < 500) %>% 
-  mutate(Depression = factor(Depression, levels = c("Low", "Medium", "High"))) %>% 
-  ggplot(aes(x = Depression, y = `Hours per day`, fill = Depression)) +
-  geom_boxplot() +
-  theme_minimal() +
-  theme(legend.position = "none") +
-  labs(title = "Związek między uderzeniami na minutę (BPM) ulubionego gatunku muzycznego a poziomem depresji", x = "Poziom depresji", y = "Uderzenia na minutę (BPM)")
+plot_boxplot(data %>% filter(BPM < 500), Depression, BPM, "Związek między BPM ulubionego gatunku a poziomem depresji", "Poziom depresji", "Uderzenia na minutę (BPM)")
 ```
 
-### Rozkład słuchania muzyki poczas pracy/nauki
+### Rozkład słuchania muzyki podczas pracy/nauki
 ```{r}
-data %>% 
-  drop_na(`While working`) %>% 
-  ggplot(aes(x = `While working`, fill = `While working`)) + 
-  geom_bar() + 
-  theme_minimal() + 
-  theme(legend.position = "none") +
-  labs(title = "Rozkład słuchania muzyki poczas pracy/nauki", x = "Słuchanie muzyki podczas pracy/nauki", y = "Liczba osób")
+plot_distribution(data, `While working`, "Rozkład słuchania muzyki podczas pracy/nauki", "Słuchanie podczas pracy/nauki")
 ```
 
-### Związek słuchania muzyki podczas pracy/nauki a poziomem depresji
+### Proporcje słuchania muzyki podczas pracy/nauki wg poziomu depresji
 ```{r}
-data %>%
-  drop_na(`While working`) %>% 
-  mutate(Depression = factor(Depression, levels = c("Low", "Medium", "High"))) %>%
-  group_by(Depression, `While working`) %>%
-  summarise(count = n(), .groups = "drop") %>%
-  group_by(Depression) %>%
-  mutate(prop = count / sum(count)) %>%
-  ggplot(aes(x = Depression, y = prop, fill = `While working`)) +
-  geom_bar(stat = "identity", position = "stack") +
-  theme_minimal() +
-  labs(title = "Proporcje słuchania muzyki podczas pracy/nauki według poziomu depresji", x = "Poziom depresji", y = "Udział", fill = "Słuchanie podczas pracy/nauki")
+plot_prop_bar(data, `While working`, "Proporcje słuchania muzyki podczas pracy/nauki wg poziomu depresji", "Poziom depresji", "Udział", "Słuchanie podczas pracy/nauki")
 ```
 
 ### Rozkład gry na instrumencie
 ```{r}
-data %>% 
-  drop_na(Instrumentalist) %>% 
-  ggplot(aes(x = Instrumentalist, fill = Instrumentalist)) + 
-  geom_bar() + 
-  theme_minimal() + 
-  theme(legend.position = "none") +
-  labs(title = "Rozkład gry na instrumencie", x = "Regularne granie na instrumencie", y = "Liczba osób")
+plot_distribution(data, Instrumentalist, "Rozkład gry na instrumencie", "Regularne granie na instrumencie")
 ```
 
-### Związek między grą na instrumencie a poziomem depresji
+### Proporcje gry na instrumencie wg poziomu depresji
 ```{r}
-data %>%
-  drop_na(Instrumentalist) %>% 
-  mutate(Depression = factor(Depression, levels = c("Low", "Medium", "High"))) %>%
-  group_by(Depression, Instrumentalist) %>%
-  summarise(count = n(), .groups = "drop") %>%
-  group_by(Depression) %>%
-  mutate(prop = count / sum(count)) %>%
-  ggplot(aes(x = Depression, y = prop, fill = Instrumentalist)) +
-  geom_bar(stat = "identity", position = "stack") +
-  theme_minimal() +
-  labs(title = "Proporcje gry na instrumencie według poziomu depresji", x = "Poziom depresji", y = "Udział", fill = "Gra na instrumencie")
+plot_prop_bar(data, Instrumentalist, "Proporcje gry na instrumencie wg poziomu depresji", "Poziom depresji", "Udział", "Gra na instrumencie")
 ```
 
 ### Rozkład komponowania muzyki
 ```{r}
-data %>% 
-  drop_na(Composer) %>% 
-  ggplot(aes(x = Composer, fill = Composer)) + 
-  geom_bar() + 
-  theme_minimal() + 
-  theme(legend.position = "none") +
-  labs(title = "Rozkład komponowania muzyki", x = "Komponuje muzyke", y = "Liczba osób")
+plot_distribution(data, Composer, "Rozkład komponowania muzyki", "Komponowanie muzyki")
 ```
 
-### Związek między komponowaniem muzyki a poziomem depresji
+### Proporcje komponowania muzyki wg poziomu depresji
 ```{r}
-data %>%
-  drop_na(Composer) %>% 
-  mutate(Depression = factor(Depression, levels = c("Low", "Medium", "High"))) %>%
-  group_by(Depression, Composer) %>%
-  summarise(count = n(), .groups = "drop") %>%
-  group_by(Depression) %>%
-  mutate(prop = count / sum(count)) %>%
-  ggplot(aes(x = Depression, y = prop, fill = Composer)) +
-  geom_bar(stat = "identity", position = "stack") +
-  theme_minimal() +
-  labs(title = "Proporcje komponowania muzyki według poziomu depresji", x = "Poziom depresji", y = "Udział", fill = "Komponowanie muzyki")
+plot_prop_bar(data, Composer, "Proporcje komponowania muzyki wg poziomu depresji", "Poziom depresji", "Udział", "Komponowanie muzyki")
 ```
 
-### Rozkład aktywnego eksplorowania artystów/gatunków
+### Rozkład eksplorowania artystów/gatunków
 ```{r}
-data %>% 
-  drop_na(Exploratory) %>% 
-  ggplot(aes(x = Exploratory, fill = Exploratory)) + 
-  geom_bar() + 
-  theme_minimal() + 
-  theme(legend.position = "none") +
-  labs(title = "Rozkład aktywnego eksplorowania artystów/gatunków", x = "Eksplorowanie artystów/gatunków", y = "Liczba osób")
+plot_distribution(data, Exploratory, "Rozkład eksplorowania artystów/gatunków", "Eksplorowanie artystów/gatunków")
 ```
 
-### Związek między aktywnym eksplorowaniem artystów/gatunków a poziomem depresji
+### Proporcje eksplorowania artystów/gatunków wg poziomu depresji
 ```{r}
-data %>%
-  drop_na(Composer) %>% 
-  mutate(Depression = factor(Depression, levels = c("Low", "Medium", "High"))) %>%
-  group_by(Depression, Composer) %>%
-  summarise(count = n(), .groups = "drop") %>%
-  group_by(Depression) %>%
-  mutate(prop = count / sum(count)) %>%
-  ggplot(aes(x = Depression, y = prop, fill = Composer)) +
-  geom_bar(stat = "identity", position = "stack") +
-  theme_minimal() +
-  labs(title = "Proporcje aktywnego eksplorowania artystów/gatunków według poziomu depresji", x = "Poziom depresji", y = "Udział", fill = "Eksplorowanie artystów/gatunków")
+plot_prop_bar(data, Exploratory, "Proporcje eksplorowania artystów/gatunków wg depresji", "Poziom depresji", "Udział", "Eksplorowanie")
 ```
 
 ### Rozkład słuchania w obcym języku
 ```{r}
-data %>% 
-  drop_na(`Foreign languages`) %>% 
-  ggplot(aes(x = `Foreign languages`, fill = `Foreign languages`)) + 
-  geom_bar() + 
-  theme_minimal() + 
-  theme(legend.position = "none") +
-  labs(title = "Rozkład słuchania w obcym języku", x = "Słuchanie w obcym języku", y = "Liczba osób")
+plot_distribution(data, `Foreign languages`, "Rozkład słuchania w obcym języku", "Słuchanie w obcym języku")
 ```
 
-### Związek między słuchaniem w języku obcym a poziomem depresji
+### Proporcje słuchania w obcym języku wg depresji
 ```{r}
-data %>%
-  drop_na(`Foreign languages`) %>% 
-  mutate(Depression = factor(Depression, levels = c("Low", "Medium", "High"))) %>%
-  group_by(Depression, `Foreign languages`) %>%
-  summarise(count = n(), .groups = "drop") %>%
-  group_by(Depression) %>%
-  mutate(prop = count / sum(count)) %>%
-  ggplot(aes(x = Depression, y = prop, fill = `Foreign languages`)) +
-  geom_bar(stat = "identity", position = "stack") +
-  theme_minimal() +
-  labs(title = "Proporcje słuchania w obcym języku według poziomu depresji", x = "Poziom depresji", y = "Udział", fill = "Słuchanie w obcym języku")
+plot_prop_bar(data, `Foreign languages`, "Proporcje słuchania w obcym języku wg depresji", "Poziom depresji", "Udział", "Słuchanie w obcym języku")
 ```
