@@ -9,15 +9,21 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-```{r}
+```{r, include=FALSE, message=FALSE, warning=FALSE}
 library(tidymodels)
+library(doParallel)
 ```
+
+```{r}
+df <- readRDS("data_no_missing_values.rds")
+```
+
 
 ```{r}
 set.seed(123)
 df_split <- initial_split(df, prop = 0.7, strata = "Depression")
-df_train <- training(ames_split)
-df_test <- testing(ames_split)
+df_train <- training(df_split)
+df_test <- testing(df_split)
 
 models <- list(
 
@@ -42,7 +48,6 @@ class_models <- workflow_set(
 cv_folds <- vfold_cv(df_train, v = 5, repeats = 5, strata = "Depression") # chyba można straty i tu używać więc czemu nie
 
 
-library(doParallel)
 registerDoParallel(cores = parallel::detectCores() - 1)
 
 
