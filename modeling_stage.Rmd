@@ -1,0 +1,88 @@
+---
+title: "Modeling"
+author: "Szymon Makulec"
+date: "2025-05-24"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(tidymodels)
+```
+
+```{r}
+set.seed(123)
+df_split <- initial_split(df, prop = 0.7, strata = "Depression")
+df_train <- training(ames_split)
+df_test <- testing(ames_split)
+
+models <- list(
+
+  
+)
+
+recipes <- list(
+  rec = recipe(Depression ~ ., data = training(ames_split)) %>%
+  step_normalize(all_predictors()) %>% 
+  step_dummy(all_nominal_predictors()) # ?
+)
+
+
+class_models <- workflow_set(
+  preproc = recipes,
+  models = models,
+  cross = FALSE # True jak będziemy chcieli każdy z każdym preprocessing z modelami
+)
+```
+
+```{r}
+cv_folds <- vfold_cv(df_train, v = 5, repeats = 5, strata = "Depression") # chyba można straty i tu używać więc czemu nie
+
+
+library(doParallel)
+registerDoParallel(cores = parallel::detectCores() - 1)
+
+
+class_models <- class_models %>% 
+  workflow_map(
+    "fit_resamples",
+    resamples = cv_folds,
+    control = control_resamples(save_pred = TRUE, save_workflow = TRUE),
+    verbose = TRUE
+  )
+
+class_models
+
+saveRDS(class_models, "wyniki_modele.rds")
+```
+
+### Ocena modeli
+
+```{r}
+class_models <- readRDS("wyniki_modele.rds")
+metryki <- collect_metrics(class_models)
+metryki
+```
+
+
+### Najlepsze modele dla wybranych metryk
+
+```{r}
+df_sorted <- metryki %>%
+  group_by(.metric) %>%
+  mutate(ranking = if_else(.metric %in% c("brier_class"), 
+                           rank(mean, ties.method = "first"),         
+                           rank(-mean, ties.method = "first"))) %>%   
+  arrange(.metric, ranking) %>%
+  ungroup()
+
+best_models <- df_sorted %>%
+  filter(ranking == 1) %>%
+  select(.metric, model, mean)
+
+print(best_models)
+```
+

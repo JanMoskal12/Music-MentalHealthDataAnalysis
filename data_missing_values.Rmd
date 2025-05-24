@@ -42,10 +42,52 @@ colSums(is.na(df))
 
 ### Liczba braków danych dla wierszy
 ```{r}
+df$Depression
 md.pattern(df, rotate.names = TRUE)
 ```
+Mamy 104 obserwacje z pojedyńczym brakiem danych w kolumnie BPM. Pozostałe braki danych są już jednostkowe. Mamy jedną obserwację gdzie brakuje 5 wartości, ponieważ jest tylko jedna taka obserwacja to poprostu ją usuwamy. Braki danych z kolumny BPM uzupełnimy średnimi grupowymi dla konkretnych gatunków muzycznych, ponieważ w ten sposób dane będą bardziej rzeczywiste niż gdybyśmy uzupełnili je średnią dla całej kolumny
 
 ### Proporcje braków danych według kolumn
 ```{r}
 aggr(df)
 ```
+
+```{r}
+df_sorted <- df[order(df$BPM, decreasing = TRUE), ]
+df_sorted
+df <- df[df$BPM <= 300, ] # tego nie będzie tu ale nie chce mi się teraz tego przerzucać
+genre_means <- aggregate(BPM ~ `Fav genre`, data = df, FUN = function(x) round(mean(x[x > 0], na.rm = TRUE), 0))
+genre_means
+```
+
+```{r}
+idx <- which(is.na(df$BPM))
+set.seed(123)
+m <- rnorm(length(idx), mean = 1, sd = 0.05)
+values <- numeric(length(idx))
+
+for (j in 1:107) {
+  genre <- df$`Fav genre`[idx[j]]
+  base <- means[genre][[1]]
+  if (!is.na(base)) {
+    values[j] <- base * m[j]
+  } else {
+    values[j] <- NA
+  }
+}
+
+df$BPM[idx] <- values
+values
+```
+
+```{r}
+library(dplyr)
+
+df[braki, c("Fav genre", "BPM")] %>%
+  mutate(Index = braki) %>%
+  select(Index, `Fav genre`, BPM) %>%
+  arrange(`Fav genre`)
+```
+
+
+
