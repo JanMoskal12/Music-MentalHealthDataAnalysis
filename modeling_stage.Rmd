@@ -26,49 +26,72 @@ df_train <- training(df_split)
 df_test <- testing(df_split)
 
 models <- list(
-
+  rf = rand_forest(
+    trees = tune(),
+    min_n = tune(),
+    mtry = tune(),
+    mode = "classification") %>%
+    set_engine("ranger"),
+  
+  xgb = boost_tree(
+    trees = tune(),
+    min_n = tune(),
+    mtry = tune(),
+    learn_rate = tune(),
+    mode = "classification") %>%
+    set_engine("xgboost"),
+  
+  svm = svm_rbf(
+    cost = tune(),
+    rbf_sigma = tune(),
+    mode = "classification") %>%
+    set_engine("kernlab")
   
 )
 
 recipes <- list(
-  rec = recipe(Depression ~ ., data = training(ames_split)) %>%
-  step_normalize(all_predictors()) %>% 
-  step_dummy(all_nominal_predictors()) # ?
+  rec_norm = recipe(Depression ~ ., data = df_train) %>%
+    step_normalize(all_numeric_predictors() )  %>%
+    step_dummy(all_nominal_predictors()),
+
+  rec_pca = recipe(Depression ~ ., data = df_train) %>%
+    step_normalize(all_numeric_predictors()) %>%
+    step_dummy(all_nominal_predictors()) %>%
+    step_pca(all_predictors(), threshold = 0.95)
 )
 
+cv_folds <- vfold_cv(df_train, v = 5, strata = "Depression")
 
 class_models <- workflow_set(
   preproc = recipes,
   models = models,
-  cross = FALSE # True jak będziemy chcieli każdy z każdym preprocessing z modelami
+  cross = TRUE
 )
+
 ```
 
 ```{r}
-cv_folds <- vfold_cv(df_train, v = 5, repeats = 5, strata = "Depression") # chyba można straty i tu używać więc czemu nie
-
-
 registerDoParallel(cores = parallel::detectCores() - 1)
 
 
-class_models <- class_models %>% 
-  workflow_map(
-    "fit_resamples",
-    resamples = cv_folds,
-    control = control_resamples(save_pred = TRUE, save_workflow = TRUE),
-    verbose = TRUE
-  )
+class_models <- workflow_map(
+  class_models,
+  "tune_grid", 
+  resamples = cv_folds,
+  grid = 20,
+  control = control_grid(save_pred = TRUE, save_workflow = TRUE)
+)
 
-class_models
 
-saveRDS(class_models, "wyniki_modele.rds")
+saveRDS(class_models, "mxmh_model.rds")
 ```
 
 ### Ocena modeli
 
 ```{r}
-class_models <- readRDS("wyniki_modele.rds")
+class_models <- readRDS("mxmh_model.rds")
 metryki <- collect_metrics(class_models)
+
 metryki
 ```
 
@@ -76,18 +99,38 @@ metryki
 ### Najlepsze modele dla wybranych metryk
 
 ```{r}
-df_sorted <- metryki %>%
+selected_metrics <- c("accuracy", "kap", "mn_log_loss", "brier_class")
+
+top3_models_per_metric <- metryki %>%
+  filter(.metric %in% selected_metrics) %>%
   group_by(.metric) %>%
-  mutate(ranking = if_else(.metric %in% c("brier_class"), 
-                           rank(mean, ties.method = "first"),         
-                           rank(-mean, ties.method = "first"))) %>%   
+  mutate(ranking = if_else(.metric %in% c("mn_log_loss", "brier_class"),
+                           rank(mean, ties.method = "first"),  # im mniejsze, tym lepsze
+                           rank(-mean, ties.method = "first"))) %>%  # im większe, tym lepsze
+  filter(ranking <= 3) %>%
+  arrange(.metric, ranking) %>%
+  select(.metric, model, mean, ranking)
+
+print(top3_models_per_metric)
+```
+
+```{r}
+available_metrics <- unique(metryki$.metric)
+
+# Posortowanie i wybranie najlepszych modeli dla każdej metryki
+top_models <- metryki %>%
+  group_by(.metric) %>%
+  mutate(ranking = if_else(
+    .metric %in% c("brier_class", "mn_log_loss"),
+    rank(mean, ties.method = "first"),     # niższa wartość = lepsza
+    rank(-mean, ties.method = "first")     # wyższa wartość = lepsza
+  )) %>%
+  filter(ranking <= 3) %>%
   arrange(.metric, ranking) %>%
   ungroup()
 
-best_models <- df_sorted %>%
-  filter(ranking == 1) %>%
-  select(.metric, model, mean)
-
-print(best_models)
+print(top_models)
 ```
+
+
 
