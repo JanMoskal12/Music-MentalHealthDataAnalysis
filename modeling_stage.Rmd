@@ -12,6 +12,8 @@ knitr::opts_chunk$set(echo = TRUE)
 ```{r, include=FALSE, message=FALSE, warning=FALSE}
 library(tidymodels)
 library(doParallel)
+library(discrim)
+library(mda)
 ```
 
 ```{r}
@@ -26,6 +28,12 @@ df_train <- training(df_split)
 df_test <- testing(df_split)
 
 models <- list(
+            lda = discrim_linear(
+              regularization_method = "diagonal",
+              penalty = tune(),
+              mode = "classification") %>% 
+              set_engine("mda"),
+              
             rf = rand_forest(
               trees = tune(),
               min_n = tune(),
@@ -46,24 +54,34 @@ models <- list(
               rbf_sigma = tune(),
               mode = "classification") %>%
               set_engine("kernlab")
-  
 )
 
 recipes <- list(
-            rec_norm = recipe(Depression ~ ., data = df_train) %>%
-                        step_normalize(all_numeric_predictors())  %>%
-                        step_dummy(all_nominal_predictors()),
-
-            rec_pca = recipe(Depression ~ ., data = df_train) %>%
+            rec_lda = recipe(Depression ~ ., data = df_train) %>%
                         step_normalize(all_numeric_predictors()) %>%
                         step_dummy(all_nominal_predictors()) %>%
-                        step_pca(all_predictors(), threshold = 0.95)
+                        step_pca(all_predictors(), threshold = 0.8),
+            
+            rec_rf = recipe(Depression ~ ., data = df_train) %>%
+                        step_normalize(all_numeric_predictors())  %>%
+                        step_dummy(all_nominal_predictors()) %>% 
+                        step_pca(all_predictors(), threshold = 0.8),
+
+            rec_xgb = recipe(Depression ~ ., data = df_train) %>%
+                        step_normalize(all_numeric_predictors()) %>%
+                        step_dummy(all_nominal_predictors()) %>%
+                        step_pca(all_predictors(), threshold = 0.6),
+            
+            rec_svm = recipe(Depression ~ ., data = df_train) %>%
+                        step_normalize(all_numeric_predictors()) %>%
+                        step_dummy(all_nominal_predictors()) %>%
+                        step_pca(all_predictors(), threshold = 0.6)
 )
 
 class_models <- workflow_set(
                   preproc = recipes,
                   models = models,
-                  cross = TRUE
+                  cross = FALSE
 )
 ```
 
@@ -73,17 +91,36 @@ cv_folds <- vfold_cv(df_train, v = 5, strata = "Depression")
 
 ```{r}
 registerDoParallel(cores = parallel::detectCores() - 1)
+controlGrid <- control_grid(save_pred = TRUE, save_workflow = TRUE)
 
 class_models <- workflow_map(
                   class_models,
                   "tune_grid", 
                   resamples = cv_folds,
                   grid = 20,
-                  control = control_grid(save_pred = TRUE, save_workflow = TRUE)
+                  control = controlGrid
 )
 
 saveRDS(class_models, "mxmh_models.rds")
 ```
+
+```{r}
+registerDoParallel(cores = parallel::detectCores() - 1)
+controlBayes <- control_bayes(save_pred = TRUE, save_workflow = TRUE,
+                              seed = 123, no_improve = 10, verbose = TRUE,
+                              save_gp_scoring = TRUE, uncertain = 7)
+
+
+
+class_models2 <- workflow_map(
+                  class_models,
+                  "tune_bayes", 
+                  resamples = cv_folds,
+                  control = controlBayes,
+                  iter = 30
+)
+```
+
 
 ### Ocena modeli
 
@@ -91,7 +128,8 @@ saveRDS(class_models, "mxmh_models.rds")
 class_models <- readRDS("mxmh_models.rds")
 metrics <- collect_metrics(class_models)
 
-metrics
+metrics %>% 
+  arrange(.metric, desc(mean))
 ```
 
 

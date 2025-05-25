@@ -110,7 +110,7 @@ wflows <- wflows %>%
 wflows %>%
   collect_metrics() %>% 
   group_by(.metric) %>% 
-  arrange(.metric, desc(mean))
+  arrange(model, .metric, desc(mean))
 ```
 
 ```{r}
