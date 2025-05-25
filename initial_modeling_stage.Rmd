@@ -1,0 +1,119 @@
+---
+title: "Music & Mental Health - Initial Modeling Stage"
+author: "Jan Moskal"
+date: "2025-05-25"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r, include=FALSE, message=FALSE, warning=FALSE}
+library(tidymodels)
+library(tidyverse)
+library(doParallel)
+library(discrim)
+library(baguette)
+```
+
+### Wczytanie danych
+```{r}
+df <- readRDS("data_no_missing_values.rds")
+```
+
+### Podział danych na zbiór treningowy i testowy
+```{r}
+set.seed(123)
+
+split <- initial_split(df, prop = 0.8, strata = "Depression")
+train <- training(split)
+test <- testing(split)
+```
+
+### Inicjalizacja modeli do uczenia
+```{r}
+models <- list(
+            nb = naive_Bayes(mode = "classification",
+                             engine = "klaR"),
+            
+            svm = svm_rbf(mode = "classification",
+                         engine = "kernlab"),
+            
+            dt = decision_tree(mode = "classification",
+                               engine = "rpart"),
+            
+            mlp = mlp(mode = "classification",
+                      engine = "nnet"),
+            
+            knn = nearest_neighbor(mode = "classification",
+                                   engine = "kknn"),
+            
+            rf = rand_forest(mode = "classification",
+                             engine = "ranger"),
+  
+            xgb = boost_tree(mode = "classification",
+                             engine = "xgboost"),
+  
+            lda = discrim_linear(mode = "classification",
+                                 engine = "MASS")
+)
+```
+
+### Utworzenie przepisów przetwarzania danych
+```{r}
+recipes <- list(
+            rec_norm = recipe(Depression ~ ., data = train) %>%
+                        step_normalize(all_numeric_predictors())  %>%
+                        step_dummy(all_nominal_predictors()),
+            
+            rec_pca_60 = recipe(Depression ~ ., data = train) %>%
+                        step_normalize(all_numeric_predictors()) %>%
+                        step_dummy(all_nominal_predictors()) %>%
+                        step_pca(all_predictors(), threshold = 0.6),
+            
+            rec_pca_80 = recipe(Depression ~ ., data = train) %>%
+                        step_normalize(all_numeric_predictors()) %>%
+                        step_dummy(all_nominal_predictors()) %>%
+                        step_pca(all_predictors(), threshold = 0.8)
+)
+```
+
+### Utworzenie przepływów modelowania
+```{r}
+wflows <- workflow_set(
+            preproc = recipes,
+            models = models,
+            cross = TRUE
+)
+```
+
+### Utworzenie podziału walidacji krzyżowej
+```{r}
+folds <- vfold_cv(train, v = 10)
+```
+
+### Trenowanie modeli
+```{r}
+registerDoParallel(cores = parallel::detectCores() - 1)
+
+wflows <- wflows %>% 
+            workflow_map(
+              "fit_resamples",
+              resamples = folds,
+              control = control_resamples(save_pred = TRUE, save_workflow = TRUE),
+              verbose = FALSE
+)
+```
+
+```{r}
+wflows %>%
+  collect_metrics() %>% 
+  group_by(.metric) %>% 
+  arrange(.metric, desc(mean))
+```
+
+```{r}
+#saveRDS(wflows, "mxmh_initial_models.rds")
+```
+
