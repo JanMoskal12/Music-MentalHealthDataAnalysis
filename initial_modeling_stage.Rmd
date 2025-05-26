@@ -96,25 +96,26 @@ folds <- vfold_cv(train, v = 10)
 ### Trenowanie modeli
 ```{r}
 registerDoParallel(cores = parallel::detectCores() - 1)
+keep_pred <- control_resamples(save_pred = TRUE, save_workflow = TRUE)
 
-wflows <- wflows %>% 
-            workflow_map(
-              "fit_resamples",
-              resamples = folds,
-              control = control_resamples(save_pred = TRUE, save_workflow = TRUE),
-              verbose = FALSE
+initial_wflows <- wflows %>% 
+                    workflow_map(
+                      "fit_resamples",
+                      resamples = folds,
+                      control = keep_pred,
+                      verbose = FALSE
 )
 ```
 
 ### Wyniki dla procesu modelowania
 ```{r}
-wflows %>%
+initial_wflows %>%
   collect_metrics() %>% 
   group_by(.metric) %>% 
-  arrange(model, .metric, desc(mean))
+  arrange(.metric, desc(mean))
 ```
 
+### Zapisanie wyników
 ```{r}
 #saveRDS(wflows, "mxmh_initial_models.rds")
 ```
-

@@ -1,6 +1,6 @@
 ---
-title: "Modeling"
-author: "Szymon Makulec"
+title: "Music & Mental Health - Modeling Stage"
+author: "Jan Moskal i Szymon Makulec"
 date: "2025-05-24"
 output: html_document
 ---
@@ -129,7 +129,6 @@ metrics <- collect_metrics(class_models)
 metrics %>% 
   arrange(.metric, desc(mean))
 ```
-
 
 ### Najlepsze modele dla wybranych metryk
 ```{r}
