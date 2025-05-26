@@ -16,17 +16,23 @@ library(discrim)
 library(mda)
 ```
 
+
+### Wczytanie danych
 ```{r}
 df <- readRDS("data_no_missing_values.rds")
 ```
 
-
+### Podział danych na zbiór treningowy i testowy
 ```{r}
 set.seed(123)
+
 df_split <- initial_split(df, prop = 0.7, strata = "Depression")
 df_train <- training(df_split)
 df_test <- testing(df_split)
+```
 
+### Inicjalizacja modeli do uczenia
+```{r}
 models <- list(
             lda = discrim_linear(
               regularization_method = "diagonal",
@@ -55,7 +61,10 @@ models <- list(
               mode = "classification") %>%
               set_engine("kernlab")
 )
+```
 
+### Utworzenie przepisów przetwarzania danych
+```{r}
 recipes <- list(
             rec_lda = recipe(Depression ~ ., data = df_train) %>%
                         step_normalize(all_numeric_predictors()) %>%
@@ -77,7 +86,10 @@ recipes <- list(
                         step_dummy(all_nominal_predictors()) %>%
                         step_pca(all_predictors(), threshold = 0.6)
 )
+```
 
+### Utworzenie przepływów modelowania
+```{r}
 class_models <- workflow_set(
                   preproc = recipes,
                   models = models,
@@ -85,10 +97,12 @@ class_models <- workflow_set(
 )
 ```
 
+### Generowanie foldów walidacyjnych
 ```{r}
 cv_folds <- vfold_cv(df_train, v = 5, strata = "Depression")
 ```
 
+### Trenowanie modeli z walidacją krzyżową i tuningiem siatki hiperparametrów
 ```{r}
 registerDoParallel(cores = parallel::detectCores() - 1)
 controlGrid <- control_grid(save_pred = TRUE, save_workflow = TRUE)
@@ -100,30 +114,14 @@ class_models <- workflow_map(
                   grid = 20,
                   control = controlGrid
 )
-
-saveRDS(class_models, "mxmh_models.rds")
 ```
 
+### Zapisywanie wyników 
 ```{r}
-registerDoParallel(cores = parallel::detectCores() - 1)
-controlBayes <- control_bayes(save_pred = TRUE, save_workflow = TRUE,
-                              seed = 123, no_improve = 10, verbose = TRUE,
-                              save_gp_scoring = TRUE, uncertain = 7)
-
-
-
-class_models2 <- workflow_map(
-                  class_models,
-                  "tune_bayes", 
-                  resamples = cv_folds,
-                  control = controlBayes,
-                  iter = 30
-)
+#saveRDS(class_models, "mxmh_models.rds")
 ```
-
 
 ### Ocena modeli
-
 ```{r}
 class_models <- readRDS("mxmh_models.rds")
 metrics <- collect_metrics(class_models)
@@ -134,7 +132,6 @@ metrics %>%
 
 
 ### Najlepsze modele dla wybranych metryk
-
 ```{r}
 selected_metrics <- c("accuracy", "kap", "mn_log_loss", "brier_class")
 

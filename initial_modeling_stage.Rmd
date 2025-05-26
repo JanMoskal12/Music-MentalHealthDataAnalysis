@@ -88,7 +88,7 @@ wflows <- workflow_set(
 )
 ```
 
-### Utworzenie podziału walidacji krzyżowej
+### Generowanie foldów walidacyjnych
 ```{r}
 folds <- vfold_cv(train, v = 10)
 ```
@@ -106,6 +106,7 @@ wflows <- wflows %>%
 )
 ```
 
+### Wyniki dla procesu modelowania
 ```{r}
 wflows %>%
   collect_metrics() %>% 
