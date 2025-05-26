@@ -15,11 +15,12 @@ library(ggcorrplot)
 library(e1071)
 ```
 
+
+### Wczytywanie danych
 ```{r}
 data <- readRDS("df_EDA.rds")
 df <- readRDS("df.rds")
 ```
-
 
 ### Podstawowe statystyki opisowe dla zmiennych numerycznych
 ```{r}
@@ -27,6 +28,8 @@ df %>%
   select(where(is.numeric)) %>%
   summary()
 ```
+
+Z ciekawych rzeczy widać tutaj, że w dwóch kolumnach numerycznych występują braki danych tzn. `Age` i `BPM`
 
 ### Wykres macierzy korelacji dla zmiennych numerycznych
 ```{r}

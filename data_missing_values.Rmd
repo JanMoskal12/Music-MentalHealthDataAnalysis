@@ -17,6 +17,8 @@ library(mice)
 library(VIM)
 ```
 
+
+### Wczytanie danych i wstępny wgląd
 ```{r}
 data <- readRDS("df_EDA.rds")
 df <- readRDS("df.rds")

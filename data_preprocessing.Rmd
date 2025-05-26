@@ -14,24 +14,29 @@ library(tidyverse)
 library(DescTools)
 ```
 
-
 ### Wczytanie i obróbka danych
-```{r}
+
+```{r, message=FALSE}
 df <- read_csv("mxmh_survey_results.csv", col_names = TRUE)
-head(df)
 ```
 
 #### Usuwanie zbędnych zmiennych
+
 ```{r}
 df <- df %>% 
         select(-c(Timestamp, Anxiety, Insomnia, OCD, `Music effects`, Permissions))
 ```
 
+Usuwamy zmienne niezwiązane bezpośrednio z analizowaną problematyką (Timestamp, Permissions). Pozostałe zmienne są poza zakresem analizy lub same mogą być przewidywane, więc nie powinny być predyktorami.
+
 ```{r}
 glimpse(df)
 ```
 
+Po usunięciu niepotrzebnych zmiennych w zbiorze zostało 27 kolumn, z czego większość to narazie zmienne tekstowe, jednak po zmianach będą to zmienne czynnikowe (często uporządkowane). Mamy też kilka zmiennych numerycznych. Mamy 736 obserwacje, gdzie każda oznacza wypełnienie ankiety przez jedną osobę. 
+
 #### Ustawianie odpowiedniej kolejności poziomów w zmiennych dotyczących częstotliwości słuchania konkretnych gatunków
+
 ```{r}
 custom_levels <- c("Never", "Rarely", "Sometimes", "Very frequently")
 
@@ -39,34 +44,57 @@ df <- df %>%
         mutate(across(`Frequency [Classical]`:`Frequency [Video game music]`, function(x) factor(x, levels = custom_levels, ordered = TRUE)))
 ```
 
+Wszystkie kolumny dotyczące częstotliwości słuchania danych zamieniamy na uporządkowane kategoryczne, ponieważ widać w ich przypadku naturalny porządek kategorii. 
+
 #### Ustawienie pozostałych zmiennych typu znakowego na zmienne kategoryczne
+
 ```{r}
 df <- df %>% 
         mutate(across(`While working`:`Foreign languages`, as.factor),
                `Primary streaming service` = as.factor(`Primary streaming service`))
 ```
 
-#### Zamiana wieku na zmienną kategoryczną
+Pozostałe zmienne tekstowe zamieniamy na zmienne kategoryczne. Są tutaj zmienne, które przyjmują wiele wartości tzn. `Primary streaming service`, `Fav genre` oraz zmienne binarne (pozostałe).
+
+#### Zapisanie ramki danych po przekształceniach 
+
 ```{r}
+#saveRDS(df, "df.rds")
+```
+
+
+#### Zamiana wieku na zmienną kategoryczną
+
+```{r, warning=FALSE}
 df %>% 
   ggplot(aes(x = Age)) +
-  geom_histogram(bins = 75)
+  geom_histogram(col = "blue", fill = "lightblue", bins = 75) + 
+  theme_minimal() +
+  labs(title = "Rozkład wieku słuchaczy", x = "Wiek", y = "Liczba osób")
 ```
+
+Rozkład wieku respondentów jest asymetryczny prawostronnie – obserwujemy znacznie mniej odpowiedzi od osób dorosłych i starszych. Jest to zjawisko naturalne, ponieważ na otwarte ankiety internetowe częściej odpowiadają osoby młodsze, lepiej zaznajomione z obsługą komputera, mające więcej czasu oraz częściej korzystające z muzyki w codziennym życiu za pośrednictwem platform streamingowych.
 
 ```{r}
 df <- df %>% 
   mutate(Age = cut(Age, breaks = c(0, 22, 40, Inf), labels = c("Youth", "Adult", "Senior"), right = TRUE))
 ```
 
+Ze względu na poprzednią obserwację zamienimy zmienną `Age` na zmienną kategoryczną z trzema kategoriami (Youth, Adult, Senior). Uznaliśmy, że może ona być przydatna w tej formie do eksploracyjnej analizy danych
+
 ```{r}
 df %>% 
   filter(!is.na(Age)) %>%
   ggplot(aes(x = Age, fill=Age)) +
-  geom_bar()
+  geom_bar() +
+  theme_minimal() + 
+  theme(legend.position = "none") +
+  labs(title = "Rozkład wieku słuchaczy", x = "Wiek", y = "Liczba osób")
 ```
 
-#### Zamiana zmiennej objaśnianej typu numerycznego na typ kategoryczny z trzema kategoriami
-```{r}
+#### Zamiana zmiennej objaśnianej z typu numerycznego na typ kategoryczny z trzema kategoriami
+
+```{r, warning=FALSE}
 quantiles <- quantile(df$Depression, probs = c(0.33, 0.66), na.rm = TRUE)
 
 df %>%
@@ -76,6 +104,7 @@ df %>%
   labs(title = "Histogram poziomu depresji",
        x = "Poziom depresji", y = "Liczba wystąpień")
 ```
+
 ```{r}
 df <- df %>%
   mutate(Depression = case_when(
@@ -85,13 +114,24 @@ df <- df %>%
   ))
 ```
 
+Rozpatrywanie zmiennej poziomu depresji w skali 0–10 byłoby problematyczne ze względu na dużą liczbę klas oraz wątpliwą interpretowalność drobnych różnic. Różnice między niskimi wartościami (np. 0, 1, 2) mogą być nieistotne, ponieważ osoby zaznaczające te poziomy zazwyczaj chcą jedynie zaznaczyć brak objawów depresyjnych. Podobnie wartości wysokie mogą być traktowane ogólnie jako wskazanie poważniejszych problemów, niezależnie od dokładnej liczby. Choć skrajne wartości mogą świadczyć o większej pewności odpowiedzi, zdecydowaliśmy się na przekształcenie tej zmiennej w trzy kategorie: Low, Medium i High. Podziału dokonano na podstawie kwantyli.
+
 ```{r}
 df %>% 
+  mutate(Depression = factor(Depression, levels = c("Low", "Medium", "High"))) %>% 
   ggplot(aes(x = Depression, fill = Depression)) + 
-  geom_bar()
+  geom_bar() +
+  theme_minimal() +
+  theme(legend.position = "none") +
+  labs(title = "Rozkład poziomu depresji", x = "Poziom depresji", y = "Lcizba osób")
 ```
 
+Jak widać, dane są dość zbalansowane – liczba obserwacji dla skrajnych poziomów (niskiego i wysokiego) jest nieco większa. Pozostawiamy ten podział bez zmian, ponieważ mniejsza liczba obserwacji w kategorii średniej nie jest problemem – to właśnie w tej grupie trudniej jednoznacznie określić stan respondenta. W przypadku poziomów niskiego i wysokiego można z większym prawdopodobieństwem założyć, że dana osoba odpowiednio nie doświadcza lub wyraźnie doświadcza objawów.
+
 #### Wyniki czyszczenia i transformacji danych do EDA
+
 ```{r}
 #saveRDS(df, "df_EDA.rds")
 ```
+
+Na koniec zapisujemy zbiór, który posłuży nam do eksploracyjnej analizy danych.
