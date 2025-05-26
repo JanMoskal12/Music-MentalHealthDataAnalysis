@@ -31,6 +31,8 @@ df_train <- training(df_split)
 df_test <- testing(df_split)
 ```
 
+Nie mamy zbyt wiele danych dlatego do tej części uczenia użyjemy 70% danych.
+
 ### Inicjalizacja modeli do uczenia
 ```{r}
 models <- list(
@@ -88,6 +90,8 @@ recipes <- list(
 )
 ```
 
+Dobór preprocessingów został dokonany względem wyników z wstępnego uczenia.
+
 ### Utworzenie przepływów modelowania
 ```{r}
 class_models <- workflow_set(
@@ -125,42 +129,150 @@ class_models <- workflow_map(
 ```{r}
 class_models <- readRDS("mxmh_models.rds")
 metrics <- collect_metrics(class_models)
-
 metrics %>% 
   arrange(.metric, desc(mean))
 ```
 
-### Najlepsze modele dla wybranych metryk
+### Najlepsze parametry dla każdego z 4 modeli
+
 ```{r}
-selected_metrics <- c("accuracy", "kap", "mn_log_loss", "brier_class")
+best_params_list <- class_models %>%
+  mutate(best = map(result, ~ select_best(.x, metric = "accuracy"))) %>%
+  select(wflow_id, best)
 
-top3_models_per_metric <- metrics %>%
-                            filter(.metric %in% selected_metrics) %>%
-                            group_by(.metric) %>%
-                            mutate(ranking = if_else(.metric %in% c("mn_log_loss", "brier_class"),
-                                                     rank(mean, ties.method = "first"),  # im mniejsze, tym lepsze
-                                                     rank(-mean, ties.method = "first"))) %>%  # im większe, tym lepsze
-                            filter(ranking <= 3) %>%
-                            arrange(.metric, ranking) %>%
-                            select(.metric, model, mean, ranking)
 
-print(top3_models_per_metric)
+best_params_list$best[[1]]
+best_params_list$best[[2]]
+best_params_list$best[[3]]
+best_params_list$best[[4]]
+```
+Tworzymy listę najlepszych parametrów dla każdego z modeli startowych (kolejność taka jak deklarowanych modeli)
+
+
+### Deklaracja modeli z najlepszymi parametrami
+
+```{r}
+models_final <- list(
+            lda = discrim_linear(
+              regularization_method = "diagonal",
+              penalty = 0.00052253,
+              mode = "classification") %>% 
+              set_engine("mda"),
+              
+            rf = rand_forest(
+              trees = 23,
+              min_n = 1543,
+              mtry = 34,
+              mode = "classification") %>%
+              set_engine("ranger"),
+  
+            xgb = boost_tree(
+              trees = 10,
+              min_n = 598	,
+              mtry = 36	,
+              learn_rate = 0.003901389,
+              mode = "classification") %>%
+              set_engine("xgboost"),
+  
+            svm = svm_rbf(
+              cost = 2.463212,
+              rbf_sigma = 0.001483969,
+              mode = "classification") %>%
+              set_engine("kernlab")
+)
 ```
 
 ```{r}
-available_metrics <- unique(metrics$.metric)
+recipes <- list(
+            rec_lda = recipe(Depression ~ ., data = df_train) %>%
+                        step_normalize(all_numeric_predictors()) %>%
+                        step_dummy(all_nominal_predictors()) %>%
+                        step_pca(all_predictors(), threshold = 0.8),
+            
+            rec_rf = recipe(Depression ~ ., data = df_train) %>%
+                        step_normalize(all_numeric_predictors())  %>%
+                        step_dummy(all_nominal_predictors()) %>% 
+                        step_pca(all_predictors(), threshold = 0.8),
 
-# Posortowanie i wybranie najlepszych modeli dla każdej metryki
-top_models <- metrics %>%
-                group_by(.metric) %>%
-                mutate(ranking = if_else(
-                                  .metric %in% c("brier_class", "mn_log_loss"),
-                                  rank(mean, ties.method = "first"),     # niższa wartość = lepsza
-                                  rank(-mean, ties.method = "first")     # wyższa wartość = lepsza
-                )) %>%
-                filter(ranking <= 3) %>%
-                arrange(.metric, ranking) %>%
-                ungroup()
-
-print(top_models)
+            rec_xgb = recipe(Depression ~ ., data = df_train) %>%
+                        step_normalize(all_numeric_predictors()) %>%
+                        step_dummy(all_nominal_predictors()) %>%
+                        step_pca(all_predictors(), threshold = 0.6),
+            
+            rec_svm = recipe(Depression ~ ., data = df_train) %>%
+                        step_normalize(all_numeric_predictors()) %>%
+                        step_dummy(all_nominal_predictors()) %>%
+                        step_pca(all_predictors(), threshold = 0.6)
+)
 ```
+
+```{r}
+class_models_final <- workflow_set(
+                  preproc = recipes,
+                  models = models_final,
+                  cross = FALSE
+)
+```
+
+
+### Dopasowanie modeli do zbioru treningowego
+
+
+```{r, warning=FALSE, message=FALSE}
+class_models_fitted <- class_models_final %>%
+  mutate(fitted = map(info, ~ fit(.x$workflow[[1]], data = df_train)))
+```
+
+
+### Testowanie modeli na zbiorze treningowym
+
+```{r, warning=FALSE, message=FALSE}
+df_test <- df_test %>%
+  mutate(Depression = factor(Depression))
+
+test_results <- class_models_fitted %>%
+  transmute(
+    wflow_id,
+    fitted,
+    pred = map(fitted, ~ predict(.x, new_data = df_test) %>%
+                          bind_cols(truth = df_test$Depression))
+  )
+
+
+multi_metric <- metric_set(accuracy, kap, f_meas)
+
+test_metrics <- test_results %>%
+  mutate(metrics = map(pred, ~ multi_metric(.x,
+                                            truth = truth,
+                                            estimate = .pred_class,
+                                            estimator = "macro_weighted"))) %>%
+  select(wflow_id, metrics) %>%
+  unnest(metrics)
+
+
+conf_matrices <- test_results %>%
+  mutate(conf_mat = map(pred, ~ conf_mat(.x,
+                                         truth = truth,
+                                         estimate = .pred_class))) %>%
+  select(wflow_id, conf_mat)
+
+```
+
+### Wyniki modeli
+
+#### Metryki
+
+```{r}
+test_metrics[test_metrics$.metric != "f_meas",] %>% 
+  arrange(.metric, desc(.estimate))
+```
+
+Wyniki pod względem metryk nie wyszły zbyt dobrze, jednak mieliśmy do przewidywania 3 klasy które były podobnie liczne, zatem nasze modele radzą sobie przynajmniej lepiej od losowego zgadywania. Najlepiej poradziły sobie modele lda oraz svm osiągając odpowiednio około 46% oraz 42% accuracy.
+
+#### Macierze kontygnencji
+
+```{r}
+conf_matrices$conf_mat
+```
+Macierze kontygnencji dla kolejno modeli lda, rf, xgb oraz svm. Widać, że modele drzewiaste nie poradziły sobie z zadaniem przewidując tylko po 1 klasie, możliwe że wynika to z tego, że korzystaliśmy z losowego przeszukiwania siatki hiperparametrów oraz wykorzystaliśmy złą metrykę do oceny jakości modelu. Model svm przewidywał spośród 2 klas, nieskiego i wysokiego poziomu depresji co może sugerować, że początkowy podział na 3 klasy był nieodpowiedni. Należy pamiętać, że poziom depresji respondenci przyznawali sobie sami, więc może być on subiektywny i nie do końca odpowiadać rzeczywistości. Model lda poradził sobie najlepiej. Przewidział poprawnie ponad połowę przypadków nieskiego oraz wysokiego poziomu depresji jednak w przypadku średniego poziomu depresji osiągnął jedynie około 20% trafności co ponownie jedynie sugeruje, na ile niejednoznaczna była klasa średniego poziomu depresji.
+
