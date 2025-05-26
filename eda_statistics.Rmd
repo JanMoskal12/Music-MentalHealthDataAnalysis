@@ -29,7 +29,7 @@ df %>%
   summary()
 ```
 
-Z ciekawych rzeczy widać tutaj, że w dwóch kolumnach numerycznych występują braki danych tzn. `Age` i `BPM`
+Warto zwrócić uwagę, że w dwóch kolumnach numerycznych występują braki danych – w `Age` tylko jedna, natomiast w `BPM` aż 107 obserwacji. Dodatkowo, w zmiennej `BPM` pojawiaja się wartość (lub wartości) znacznie odbiegająca od typowego zakresu BPM, zapewne jest to błąd. Wszystkie te kwestie zostaną w dalszej części odpowiednio przetworzone i rozwiązane.
 
 ### Wykres macierzy korelacji dla zmiennych numerycznych
 ```{r}
@@ -40,6 +40,8 @@ df %>%
   ggcorrplot(lab = TRUE)
 ```
 
+Z analizy macierzy korelacji wynika, że nie występują istotne korelacje ani między zmiennymi objaśniającymi, ani pomiędzy nimi a zmienną objaśnianą – żadna wartość nie przekracza 0.1. Może to świadczyć o braku liniowych zależności w danych, co potencjalnie utrudnia skuteczne modelowanie i prognozowanie zmiennej objaśnianej.
+
 ### Zestawienie liczby braków danych
 ```{r}
 df %>%
@@ -49,3 +51,4 @@ df %>%
   arrange(desc(`Liczba braków`))
 ```
 
+W zbiorze danych występują braki w siedmiu zmiennych. Najwięcej braków odnotowano w zmiennej `BPM` (107), co będzie wymagać specjalnego potraktowania, zapewne imputacji. Pozostałe zmienne zawierają pojedyncze braki: `Instrumentalist` i `Foreign languages` po 4, `While working` – 3, `Age`, `Primary streaming service` i `Composer` – po 1. W tych sytuacjach planujemy usunięcie odpowiednich wierszy lub zastąpienie braków ustalonymi wartościami.
