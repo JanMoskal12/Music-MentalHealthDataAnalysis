@@ -1,6 +1,6 @@
 ---
 title: "Music & Mental Health - Dealing with Missing Data"
-author: "Jan Moskal"
+author: "Jan Moskal i Szymon Makulec"
 date: "2025-05-22"
 output: html_document
 ---
@@ -42,6 +42,8 @@ sum(is.na(df))
 colSums(is.na(df))
 ```
 
+Braków w kolumnach nie jest wiele, widoczne są jedynie w kolumnie BPM gdzie mamy 107 braków danych.
+
 ### Liczba braków danych dla wierszy
 ```{r}
 df$Depression
@@ -53,11 +55,20 @@ Mamy 104 obserwacje z pojedyńczym brakiem danych w kolumnie BPM. Pozostałe bra
 ```{r}
 aggr(df)
 ```
+### Wgląd w kolumnę BPM
 
 ```{r}
 df_sorted <- df[order(df$BPM, decreasing = TRUE), ]
-df_sorted
-data$BPM[data$BPM >= 600] <- NA # tego nie będzie tu ale nie chce mi się teraz tego przerzucać
+head(df_sorted)
+tail(df_sorted)
+
+data$BPM[data$BPM >= 600 | data$BPM <= 20] <- NA
+```
+Nierealne wartości BPM (8 obserwacji) zastąpiliśmy brakami danych, ponieważ lepsze to niż tracenie informacji. 
+
+### Uzupełnianie braków danych w kolumnie BPM
+
+```{r}
 means <- aggregate(BPM ~ `Fav genre`, data = data, FUN = function(x) round(mean(x[x > 0], na.rm = TRUE), 0))
 ```
 
@@ -67,7 +78,7 @@ set.seed(123)
 m <- rnorm(length(idx), mean = 1, sd = 0.05)
 values <- numeric(length(idx))
 
-for (j in 1:109) {
+for (j in 1:115) {
   genre <- data$`Fav genre`[idx[j]]
   base <- means[means$`Fav genre` == genre, 'BPM']
   values[j] <- base * m[j]
@@ -76,6 +87,10 @@ for (j in 1:109) {
 data$BPM[idx] <- round(values, 0)
 ```
 
+Braki zostały wypełnione średnimi grupowymi BPM z dodatkiem losowego szumu a natępnie zostały zaokrąglone do wartości całkowitch, ponieważ tylko takie mają sens logiczny w pzypadku BPM.
+
+#### Wartości którymi wypełniono braki danych w kolumnie bPM 
+
 ```{r}
 data[idx, c("Fav genre", "BPM")] %>%
   mutate(Index = idx) %>%
@@ -83,11 +98,16 @@ data[idx, c("Fav genre", "BPM")] %>%
   arrange(`Fav genre`)
 ```
 
+### Sprawdzenie jakie braki danych nam zostały
 
 ```{r}
-data <- data[rowSums(is.na(data)) != 4, ] 
 (md.pattern(data, plot = TRUE, rotate.names = TRUE))
 ```
+```{r}
+data <- data[rowSums(is.na(data)) != 4, ] 
+```
+
+Po usunięciu pojedyńczego wiersza z 4 brakami danych pozostają już nam jedynie obserwacje z pojedyńczymi brakami. Uzupełnimy je proprzez imputację z wykorzystaniem pakietu mice.
 
 ```{r}
 set.seed(2025)
@@ -103,6 +123,6 @@ data <- complete(imp,1)
 (md.pattern(data, plot = TRUE, rotate.names = TRUE))
 saveRDS(data, "data_no_missing_values.rds")
 ```
-
+Jak widać pozostają już nam jedynie 735 obserwacji bez braków danych.
 
 
