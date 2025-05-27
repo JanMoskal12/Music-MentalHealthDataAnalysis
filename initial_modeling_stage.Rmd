@@ -79,6 +79,8 @@ recipes <- list(
 )
 ```
 
+Będziemy testować modele na różnych poziomach PCA
+
 ### Utworzenie przepływów modelowania
 ```{r}
 wflows <- workflow_set(
