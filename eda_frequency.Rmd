@@ -114,15 +114,20 @@ long_freq %>%
   labs(title = "Liczba osób słuchających danego gatunku z określoną częstotliwością słuchania", x = "Gatunek", y = "Częstotliwość słuchania", fill = "Liczba osób")
 ```
 
+Najwięcej osób bardzo często słucha muzyki pop i rock, co nie dziwi – są to jedne z najpopularniejszych gatunków muzycznych. Rzadko zdarza się natomiast, by respondenci w ogóle nie słuchali tych dwóch stylów. Z kolei niewielki odsetek badanych deklaruje częste słuchanie takich gatunków jak gospel, country, latin czy jazz. Może to wynikać z ich mniejszej popularności wśród młodszych odbiorców oraz postrzegania ich jako bardziej egzotycznych. Warto również zauważyć, że bardzo wiele osób nigdy nie słuchało muzyki gospel, k-popu, latin lub country, co może być związane z kulturowym lub religijnym kontekstem tych gatunków.Możliwy wpływ ma również dostępność tych gatunków w mediach i na platformach streamingowych, a także język utworów – gatunki nieanglojęzyczne mogą być mniej przystępne.
+
 ```{r}
 plot_mean_barplot(long_freq_count, "count", "Średnia liczba osób słuchających według częstotliwości słuchania", "Średnia liczba osób") +
   ylim(0, 300)
 ```
 
+Średnia liczba osób przypadająca na poszczególne poziomy częstotliwości słuchania maleje wraz ze wzrostem intensywności słuchania. Najwięcej osób średnio deklaruje, że nigdy nie słucha danego gatunku muzyki (268,69), a najmniej – że słucha go bardzo często (113,81). Może to sugerować, że większość gatunków muzycznych jest słuchana okazjonalnie lub wcale, a intensywne słuchanie ogranicza się do wybranych, popularnych stylów.
+
 ### Średni poziom depresji w zależności od gatunku i częstotliwości słuchania
 ```{r}
 plot_mean_heatmap(df_depr, "Depression", "Średni poziom depresji w zależności od gatunku i częstotliwości słuchania", "Średni poziom depresji")
 ```
+Po zdekodowaniu poziomu depresji (Low = 0, Medium = 1, High = 2) zauważalne są niewielkie, ale interesujące różnice w średnich wartościach w zależności od gatunku i częstotliwości słuchania muzyki. Najwyższy poziom depresji (1.19) występuje u osób czasami słuchających metalu, natomiast najniższy (0.64) – u osób bardzo często słuchających gospel, co może sugerować możliwy wpływ duchowości lub wieku słuchaczy. Osoby unikające gatunków takich jak metal, rap czy hip-hop również charakteryzują się niższym średnim poziomem depresji, choć może to wynikać z innych czynników – jak wiek, styl życia czy preferencje kulturowe. Ogólnie poziomy depresji oscylują wokół wartości 1, a różnice nie są duże, jednak dla niektórych gatunków zauważalne są pewne wzorce.
 
 ### Średni poziom depresji dla każdej częstotliwości słuchania 
 ```{r}
@@ -130,28 +135,36 @@ plot_mean_barplot(long_freq_depr, "Depression", "Średni poziom depresji dla ka�
   ylim(0, 2)
 ```
 
+Średni poziom depresji nieznacznie (nieistotnie) wzrasta wraz ze zwiększającą się częstotliwością słuchania muzyki. Choć różnice są niewielkie, może to sugerować, że osoby częściej sięgające po muzykę – zwłaszcza intensywnie – częściej też deklarują średni lub wysoki poziom depresji. Może to wynikać z faktu, że muzyka bywa wykorzystywana jako forma wsparcia emocjonalnego, szczególnie przez osoby zmagające się z pogorszonym samopoczuciem. To jednak tak drobne zmiany, że trudno wyciągać z nich pewne wnioski.
 
 ### Średnia liczba godzin słuchania muzyki według gatunku i częstotliwości słuchania
 ```{r}
 plot_mean_heatmap(data, "Hours per day", "Średnia liczba godzin słuchania muzyki według gatunku i częstotliwości słuchania", "Liczba godzin")
 ```
 
+Z wykresu wynika, że jeśli dana osoba deklaruje częste słuchanie muzyki danego gatunku, to więcej czasu jej poświęca ogółem — co jest zgodne z intuicją. Gatunki takie jak rap, muzyka latynoska i hip-hop osiągają najwyższe średnie wartości godzin wśród osób słuchających muzyki bardzo często, co może świadczyć o ich intensywnej konsumpcji. Warto jednak zwrócić uwagę, że nawet osoby, które deklarują brak kontaktu z danym gatunkiem, często ogółem spędzają na słuchaniu muzyki znaczną liczbę godzin. Może to sugerować, że ich preferencje są silnie skierowane ku innym gatunkom, a nie że unikają muzyki jako takiej. Różnice w średniej liczbie godzin między grupami częstotliwości są widoczne, ale w wielu przypadkach niezbyt duże.
+
 ### Średni czas słuchania muzyki według częstotliwości słuchania
 ```{r}
 plot_mean_barplot(long_freq, "Hours per day", "Średni czas słuchania muzyki według częstotliwości słuchania", "Liczba godzin") + 
   ylim(0, 5)
 ```
+Zanim przejdziemy do analizy, warto zaznaczyć, że słupek „Never” nie odnosi się do osób, które w ogóle nie słuchają muzyki, lecz do liczby gatunków, których ktoś nie słucha wcale. Osoby deklarujące bardzo częste słuchanie muzyki spędzają na tym najwięcej czasu, podczas gdy osoby słuchające jej rzadziej poświęcają jej odpowiednio mniej czasu. Każda kolejna grupa częstotliwości charakteryzuje się nieco wyższym średnim czasem słuchania, co świadczy o spójności deklaracji z rzeczywistym zaangażowaniem czasowym. Może to również potwierdzać, że częstotliwość słuchania stanowi dobry wskaźnik ogólnej intensywności kontaktu z muzyką. Wzrost ten jest jednak stosunkowo nieduży. 
 
 ### Średni wiek słuchającego w zależności od gatunku i częstotliwości słuchania
 ```{r}
 plot_mean_heatmap(df, "Age", "Średni wiek słuchającego w zależności od gatunku i częstotliwości słuchania", "Wiek")
 ```
 
+Ogólnie można zauważyć, że osoby, które słuchają muzyki bardzo często, są zazwyczaj młodsze od tych, które robią to rzadziej lub deklarują brak kontaktu z danym gatunkiem. Najniższe średnie wieki występują wśród intensywnych słuchaczy gatunków takich jak K-pop, pop, rap, video game music czy lofi, co potwierdza ich popularność wśród młodszych odbiorców. Z kolei najwyższe wartości średniego wieku pojawiają się wśród osób słuchających częściej muzyki klasycznej, gospel, country czy rocka, co może wskazywać na większe zainteresowanie tymi gatunkami wśród starszych grup. Wzorce te są spójne z ogólnymi trendami demograficznymi w odbiorze muzyki.
+
 ### Średni wiek słuchającego według częstotliwości słuchania
 ```{r}
 plot_mean_barplot(long_freq_age, "Age", "Średni wiek słuchającego według częstotliwości słuchania", "Wiek") + 
   ylim(0, 30)
 ```
+
+Można zauważyć, że osoby słuchające muzyki bardzo często są średnio wyraźnie młodsze (23.54) niż pozostałe grupy. W przypadku pozostałych kategorii – Never, Rarely i Sometimes – różnice są niewielkie i oscylują wokół 25–26 lat. Może to sugerować, że intensywne słuchanie muzyki jest szczególnie charakterystyczne dla młodszych osób, natomiast w starszych grupach wiekowych częstotliwość słuchania rozkłada się bardziej równomiernie.
 
 ### Proporcja liczby osób słuchających z daną częstotliwością słuchania ulubionego gatunku do wszystkich osób słuchających tego gatunku z tą częstotliwością słuchania
 ```{r}
@@ -168,11 +181,16 @@ long_freq %>%
   labs(title = "Udział ulubionych gatunków wśród słuchaczy danego gatunku i częstotliwości", x = "Gatunek", y = "Częstotliwość słuchania", fill = "Udział ulubionych")
 ```
 
+
+Silna preferencja ulubionego gatunku wiąże się z jego regularnym słuchaniem (Very frequently). Oczywiście dla pozostałych kategorii częstotliwości (Sometimes, Rarely, Never) udział ulubionych gatunków jest znikomy lub zerowy. Wizualizacja pokazuje, że osoby słuchające bardzo często gatunków takich jak metal, country czy rock, znacznie częściej wskazują je jako ulubione – w przeciwieństwie do słuchaczy lofi, latin czy rapu. Może to wynikać z faktu, że metal, country i rock są silnie związane z konkretnymi subkulturami i tożsamością słuchaczy, częściej spotykaną wśród starszych odbiorców z bardziej ugruntowanymi gustami muzycznymi. Natomiast młodsi słuchacze, którzy dominują wśród fanów rapu, lofi czy latino, często słuchają wielu różnych gatunków, niekoniecznie mając jeden ulubiony – co może odzwierciedlać większą otwartość i zmienność preferencji. Dodatkowo, gatunki takie jak lofi czy latin mogą być słuchane bardziej użytkowo (np. do nauki, relaksu, zabawy), a nie emocjonalnie, co także może ograniczać ich postrzeganie jako „ulubionych”.
+
 ### Udział muzyków wśród słuchaczy danego gatunku i częstotliwości słuchania
 ```{r}
 plot_binary_heatmap(long_bin_all, "Instrumentalist") +
   labs(title = "Udział muzyków wśród słuchaczy danego gatunku i częstotliwości słuchania", fill = "Udział muzyków")
 ```
+
+Wykres pokazuje, że najwyższy udział muzyków wśród słuchaczy „Very frequently” dotyczy muzyki klasycznej (60%) i jazzu (57%) – oba te gatunki są silnie powiązane z formalnym wykształceniem muzycznym, wymagają dużych umiejętności technicznych i są obecne w edukacji muzycznej, co przyciąga osoby aktywnie grające. Odwrotnie sytuacja wygląda dla country, hip-hopu i R&B, gdzie udział muzyków jest relatywnie niski nawet wśród częstych słuchaczy – sugeruje to, że te gatunki są bardziej konsumenckie, tzn. słuchane głównie przez osoby nieuprawiające muzyki. Ciekawym zjawiskiem jest to, że osoby, które w ogóle nie słuchają popu, R&B, rapu, hip-hopu czy rocka, częściej są muzykami – może to wynikać z bardziej klasycznego lub niszowego gustu muzycznego muzyków, którzy unikają komercyjnych gatunków na rzecz tych bardziej technicznych, instrumentalnych lub poważnych.
 
 ### Udział kompozytorów wśród słuchaczy danego gatunku i częstotliwości słuchania
 ```{r}
@@ -180,11 +198,15 @@ plot_binary_heatmap(long_bin_all, "Composer") +
   labs(title = "Udział kompozytorów wśród słuchaczy danego gatunku i częstotliwości słuchania", fill = "Udział kompozytorów")
 ```
 
+Wśród bardzo częstych słuchaczy jazzu, klasyki i metalu jest najwyższy odsetek kompozytorów – odpowiednio 40%, 22% i 25% – co może wynikać z ich muzycznej złożoności. Z kolei country, hip-hop, rap, R&B czy K-pop przyciągają mniej kompozytorów, nawet wśród często słuchających. Może to wynikać z faktu, że często opierają się na powtarzalnych schematach lub prostszych strukturach co przyciąga mniej kompozytorów. Jednak może to być jedynie charakterystyczna zależność dla tego zbioru danych.
+
 ### Udział słuchaczy muzyki w trakcie pracy/nauki względem gatunku i częstotliwości słuchania
 ```{r}
 plot_binary_heatmap(long_bin_all, "While working") +
   labs(title = "Proporcja słuchaczy muzyki w trakcie pracy/nauki względem gatunku i częstotliwości słuchania", fill = "Udział przy pracy/nauce")
 ```
+
+Większość często słuchanych gatunków muzycznych jest również wykorzystywana podczas pracy lub nauki. Nieco niższy udział (0.82 i mniej) obserwujemy w przypadku takich gatunków jak country, pop, metal czy rock – są to zazwyczaj utwory bardziej dynamiczne i angażujące, co może rozpraszać, dlatego rzadziej towarzyszą nauce czy pracy. Na tle innych wyraźnie wyróżnia się lofi, który osiąga prawie 90% udziału w słuchaniu podczas pracy/nauki. Co ciekawe, wśród osób, które go nie słuchają na co dzień, współczynnik ten jest najniższy w całym zestawieniu (0.68). Może to wynikać z faktu, że lofi to muzyka relaksująca, mało angażująca i najczęściej pozbawiona słów – jakby stworzona do towarzyszenia w skupieniu i pracy umysłowej.
 
 ### Udział aktywnie eksplorujących nowe gatunki i autorów względem gatunku i częstotliwości słuchania 
 ```{r}
@@ -192,10 +214,12 @@ plot_binary_heatmap(long_bin_all, "Exploratory") +
   labs(title = "Udział aktywnie eksplorujących nowe gatunki i autorów względem gatunku i częstotliwości słuchania", fill = "Udział eksplorujących")
 ```
 
+Osoby często słuchające rapu i jazzu wykazują wysoką skłonność do eksplorowania nowych wykonawców i gatunków, co może wynikać z dynamicznego charakteru tych stylów – rap nieustannie się zmienia i przyciąga nowymi trendami, a jazz opiera się na improwizacji i fuzjach, co naturalnie sprzyja otwartości na nowe brzmienia. W przeciwieństwie do tego, osoby bardzo często słuchające gospelu mają niski współczynnik eksploracji (0,5), co może być związane z silnym emocjonalnym i duchowym przywiązaniem do konkretnych utworów i wykonawców – w tym przypadku muzyka pełni bardziej stałą, rytualną funkcję niż rozrywkową. Ciekawa jest też sytuacja popu – wśród osób, które deklarują, że go nie słuchają, eksploracja muzyczna jest bardzo niska. Może to wynikać z faktu, że pop jest wszędzie obecny i trudno go zupełnie uniknąć; jeśli ktoś to robi, najczęściej świadomie ogranicza się do jednego, alternatywnego stylu, rezygnując z poszukiwania nowych brzmień.
+
 ### Udział słuchaczy muzyki w językach obcych dla nich względem gatunku i częstotliwości słuchania
 ```{r}
 plot_binary_heatmap(long_bin_all, "Foreign languages") +
   labs(title = "Udział słuchaczy muzyki w językach obcych dla nich względem gatunku i częstotliwości słuchania", fill = "Udział w języku obcym")
 ```
 
-
+W danych wyraźnie widoczne są istotne różnice między gatunkami pod względem udziału muzyki w językach obcych. K-pop (95%) i Latin (85%) to gatunki, które są niemal zawsze słuchane w językach innych niż ojczysty – co wynika z ich międzynarodowego charakteru i popularności poza krajem pochodzenia słuchaczy. Z kolei Gospel (36%) i Country (41%) mają najniższy udział muzyki obcojęzycznej, nawet wśród osób słuchających ich bardzo często. Są to style silnie związane z lokalną tradycją i tożsamością kulturową, przez co rzadziej występują w wersjach językowo zróżnicowanych.

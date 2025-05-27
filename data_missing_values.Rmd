@@ -46,7 +46,6 @@ Braków w kolumnach nie jest wiele, widoczne są jedynie w kolumnie BPM gdzie ma
 
 ### Liczba braków danych dla wierszy
 ```{r}
-df$Depression
 md.pattern(df, rotate.names = TRUE)
 ```
 Mamy 104 obserwacje z pojedyńczym brakiem danych w kolumnie BPM. Pozostałe braki danych są już jednostkowe. Mamy jedną obserwację gdzie brakuje 5 wartości, ponieważ jest tylko jedna to taką obserwację poprostu usuwamy. Braki danych z kolumny BPM uzupełnimy średnimi grupowymi dla konkretnych gatunków muzycznych, ponieważ w ten sposób dane będą bardziej rzeczywiste niż gdybyśmy uzupełnili je średnią dla całej kolumny.
@@ -121,6 +120,10 @@ imp <- mice(data,
 
 data <- complete(imp,1)
 (md.pattern(data, plot = TRUE, rotate.names = TRUE))
+```
+
+### Zapisywanie zbioru danych po uzupełnieniu oraz usunięciu wszystkich braków danych
+```{r}
 saveRDS(data, "data_no_missing_values.rds")
 ```
 Jak widać pozostają już nam jedynie 735 obserwacji bez braków danych.
