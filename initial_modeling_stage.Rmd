@@ -31,6 +31,8 @@ train <- training(split)
 test <- testing(split)
 ```
 
+Dzielimy dane na zbiór uczący oraz testowy z zachowaniem proporcji klas w kolumnie `Depression`.
+
 ### Inicjalizacja modeli do uczenia
 ```{r}
 models <- list(
@@ -60,6 +62,8 @@ models <- list(
 )
 ```
 
+Inicjalizujemy listę modeli kolejno: naive Bayes, SVM, decision tree, MLP, KNN, random forest, XGBoost oraz LDA.
+
 ### Utworzenie przepisów przetwarzania danych
 ```{r}
 recipes <- list(
@@ -79,9 +83,10 @@ recipes <- list(
 )
 ```
 
-Będziemy testować modele na różnych poziomach PCA
+Będziemy testować modele na różnych poziomach PCA.
 
 ### Utworzenie przepływów modelowania
+
 ```{r}
 wflows <- workflow_set(
             preproc = recipes,
@@ -90,10 +95,14 @@ wflows <- workflow_set(
 )
 ```
 
+Tworzymy workflow set z flagą cross na TRUE czyli każdy model zostanie przetestowany na każdym przepisie.
+
 ### Generowanie foldów walidacyjnych
 ```{r}
 folds <- vfold_cv(train, v = 10)
 ```
+
+Generujemy 10-krotne walidacyjne podziały zbioru uczącego.
 
 ### Trenowanie modeli
 ```{r}
@@ -109,6 +118,7 @@ initial_wflows <- wflows %>%
 )
 ```
 
+
 ### Wyniki dla procesu modelowania
 ```{r}
 initial_wflows %>%
@@ -116,6 +126,8 @@ initial_wflows %>%
   group_by(.metric) %>% 
   arrange(.metric, desc(mean))
 ```
+
+Ze wstępnych wyników do dalszej części weźmiemy modele LDA, random forest, SVM oraz SGboost.
 
 ### Zapisanie wyników
 ```{r}

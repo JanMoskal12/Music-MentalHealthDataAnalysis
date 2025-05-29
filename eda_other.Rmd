@@ -60,6 +60,7 @@ plot_prop_bar <- function(df, fill_var, title, xlab, ylab, fill_lab){
 }
 ```
 
+Przygotowywujemy funkcje któe ułątwią nam tworzenie wykresów.
 
 
 ### Rozkład wieku słuchacza
@@ -69,7 +70,7 @@ df %>%
   geom_histogram(color = "blue", fill = "lightblue", bins = 40) + 
   labs(title = "Rozkład wieku słuchacza", x = "Wiek słuchacza", y = "Liczba osób")
 ```
-
+Wiek słuchaczy jest prawostronnie asymetryczny, z większością osób w przedziale 18-30 lat. Widać również kilka osób w wieku 50+.
 ### Związek między wiekiem słuchającego a poziomem depresji
 ```{r, warning=FALSE}
 df %>% 
@@ -81,16 +82,19 @@ df %>%
   theme(legend.position = "none") +
   labs(title = "Związek między wiekiem słuchającego a poziomem depresji", x = "Poziom depresji", y = "Wiek słuchacza")
 ```
+Dla niskiego poziomu depresji mamy największą różnorodność wieku słuchaczy co można zobaczyć po odległości między kwartylami. Dla średniego i wysokiego poziomu depresji mamy bardzo podobne rozkłady wieku. Im wyższy poziom depresji tym mediana wieku jest wyższa jednak nie jest ona dużo większa więc nie uznajemy tego za istotną różnicę.
 
 ### Rozkład preferowanego serwisu streamingowego
 ```{r}
 plot_distribution(data, `Primary streaming service`, "Rozkład preferowanego serwisu streamingowego", "Preferowany serwis streamingowy")
 ```
+Większość słuchaczy korzysta z Spotify, a następnie z YouTube i Apple Music. Co ciekawe jest również trzecia co do wielkości grupa słuchaczy, która nie słucha muzyki w serwisach streamingowych.
 
 ### Proporcje platform streamingowych wg poziomu depresji
 ```{r}
 plot_prop_bar(data, `Primary streaming service`, "Proporcje platform streamingowych wg poziomu depresji", "Poziom depresji", "Udział", "Platforma streamingowa")
 ```
+Dla kolejnych poziomów depresji zwiększa się ilość osób korzystających ze Spotify, a zmniejsza się ilość osób korzystających z YouTube Music oraz zmniejsza się liczba osób, które nie korzystają z serwisów streamingowych. 
 
 ### Rozkład dziennego czasu słuchania muzyki
 ```{r}
@@ -100,21 +104,25 @@ data %>%
   theme_minimal() + 
   labs(title = "Rozkład dziennego czasu słuchania muzyki", x = "Liczba godzin", y = "Liczba osób")
 ```
+Czas słuchania muzyki jest prawostronnie asymetryczny, z większością osób słuchających muzyki od 1 do 4 godzin dziennie. Widać również kilka osób słuchających muzyki przez ponad 10 godzin dziennie.
 
 ### Związek między liczbą przesłuchanych godzin a poziomem
 ```{r}
 plot_boxplot(data, Depression, `Hours per day`, "Związek między liczbą przesłuchanych godzin a poziomem depresji", "Poziom depresji", "Liczba godzin")
 ```
+Osoby z wyższym poziomem depresji mają tendencję do słuchania muzyki przez więcej godzin dziennie.
 
 ### Rozkład ulubionego gatunku muzycznego
 ```{r}
 plot_distribution(data, `Fav genre`, "Rozkład ulubionego gatunku muzycznego", "Ulubiony gatunek muzyczny", fill_colors = colors)
 ```
+Ulubionymi gatunkami respondentów są głównie Rock, po oraz Metal.
 
 ### Proporcje ulubionego gatunku wg poziomu depresji
 ```{r}
 plot_prop_bar(data, `Fav genre`, "Proporcje ulubionego gatunku wg poziomu depresji", "Poziom depresji", "Udział", "Gatunek")
 ```
+W grupie z wysoką depresją jest mniej osób słuchających metal, muzykę z gier video, muzykę klasyczną, R&B. Rośnie za to liczba osób słuchających muzyki typu Rock oraz Hip Hop.
 
 ### Rozkład liczby uderzeń na minutę (BPM)
 ```{r}
@@ -126,58 +134,77 @@ data %>%
   theme_minimal() + 
   labs(title = "Rozkład liczby uderzeń na minutę (BPM)", x = "Liczba uderzeń na minutę", y = "Liczba osób")
 ```
+Liczba uderzeń na minutę jest w miarę symetryczna. Widoczne są obserwacje podejrzane jak BPM równe 0. Wartość BPM oscyluje wokół 120.
 
 ### Związek między BPM ulubionego gatunku a poziomem depresji
 ```{r}
 plot_boxplot(data %>% filter(BPM < 500), Depression, BPM, "Związek między BPM ulubionego gatunku a poziomem depresji", "Poziom depresji", "Uderzenia na minutę (BPM)")
 ```
 
+Nie widać znaczącego wpływu BPM na poziom depresji. Istnieje jedynie podejrzenie, że osoby z niskim poziomem depresji słuchają muzyki o średnio niższym BPM.
+
 ### Rozkład słuchania muzyki podczas pracy/nauki
 ```{r}
 plot_distribution(data, `While working`, "Rozkład słuchania muzyki podczas pracy/nauki", "Słuchanie podczas pracy/nauki")
 ```
+
+Znacząca większość osób słucha muzyki podczas pracy lub nauki.
 
 ### Proporcje słuchania muzyki podczas pracy/nauki wg poziomu depresji
 ```{r}
 plot_prop_bar(data, `While working`, "Proporcje słuchania muzyki podczas pracy/nauki wg poziomu depresji", "Poziom depresji", "Udział", "Słuchanie podczas pracy/nauki")
 ```
 
+Osoby z wyższym poziomem depresji częściej słuchają muzyki podczas pracy lub nauki.
+
+
 ### Rozkład gry na instrumencie
 ```{r}
 plot_distribution(data, Instrumentalist, "Rozkład gry na instrumencie", "Regularne granie na instrumencie")
 ```
 
+Jak można było się spodziewać znacząca większość osób nie gra na instrumencie. Jednakże ilość osób grających na instrumentach jest i tak dosyć duża.
+
 ### Proporcje gry na instrumencie wg poziomu depresji
 ```{r}
 plot_prop_bar(data, Instrumentalist, "Proporcje gry na instrumencie wg poziomu depresji", "Poziom depresji", "Udział", "Gra na instrumencie")
 ```
+We wszystkich grupach ilość osób grających na instrumencie jest zbliżona. 
 
 ### Rozkład komponowania muzyki
 ```{r}
 plot_distribution(data, Composer, "Rozkład komponowania muzyki", "Komponowanie muzyki")
 ```
 
+Znacząca większość osób nie komponuje muzyki, osób komponujących jest około 110 co i tak jest wysokim wynikiem.
+
 ### Proporcje komponowania muzyki wg poziomu depresji
 ```{r}
 plot_prop_bar(data, Composer, "Proporcje komponowania muzyki wg poziomu depresji", "Poziom depresji", "Udział", "Komponowanie muzyki")
 ```
+W grupie osób z wysoką depresją jest więcej osób komponujących muzykę. Może to jednak wynikać z faktu, że niewiele jest obserwacji w tej grupie.
 
 ### Rozkład eksplorowania artystów/gatunków
 ```{r}
 plot_distribution(data, Exploratory, "Rozkład eksplorowania artystów/gatunków", "Eksplorowanie artystów/gatunków")
 ```
+Około 520 osób aktywnie eksploruje nowe gatunki oraz artystów. Około 210 osób tego nie czyni.
 
 ### Proporcje eksplorowania artystów/gatunków wg poziomu depresji
 ```{r}
 plot_prop_bar(data, Exploratory, "Proporcje eksplorowania artystów/gatunków wg depresji", "Poziom depresji", "Udział", "Eksplorowanie")
 ```
 
+Osoby z wyższym poziomem depresji częściej eksplorują nowych artystów i gatunki muzyczne.
+
 ### Rozkład słuchania w obcym języku
 ```{r}
 plot_distribution(data, `Foreign languages`, "Rozkład słuchania w obcym języku", "Słuchanie w obcym języku")
 ```
+Około 400 osób słucha muzyki w języku obcym zaś około 330 osób słucha muzyki jedynie w swoim ojczystym języku.
 
 ### Proporcje słuchania w obcym języku wg depresji
 ```{r}
 plot_prop_bar(data, `Foreign languages`, "Proporcje słuchania w obcym języku wg depresji", "Poziom depresji", "Udział", "Słuchanie w obcym języku")
 ```
+Wraz ze wzrostem depresji rośnie liczba osób słuchających muzyki w obcym języku.

@@ -111,11 +111,14 @@ class_models <- workflow_set(
 )
 ```
 
+Tym razem uczenie będzie przebiegało w formie jeden model do jednego przepisu.
 
 ### Generowanie foldów walidacyjnych
 ```{r}
 cv_folds <- vfold_cv(df_train, v = 5, strata = "Depression")
 ```
+
+Wykrozystamy 5 krotną walidację krzyżową.
 
 ### Trenowanie modeli z walidacją krzyżową i tuningiem siatki hiperparametrów
 ```{r}
@@ -198,6 +201,8 @@ models_final <- list(
 )
 ```
 
+Aktualizujemy modele przypisując im konkretne hiper-parametry, które zostały wybrane w poprzednim kroku.
+
 ```{r}
 recipes <- list(
             rec_lda = recipe(Depression ~ ., data = df_train) %>%
@@ -227,6 +232,8 @@ recipes <- list(
                         step_pca(all_predictors(), threshold = 0.9, prefix = "pca_") 
 )
 ```
+
+Tym razem nie przeprowadzamy walidacji krzyżowej więc pozwalamy sobie na to by modele nauczyły się na większej ilości danych.
 
 ### Deklaracja workflowów z ostatecznymi modelami i przepisami
 
@@ -275,6 +282,8 @@ final_fit_svm <- last_fit(
   metrics = metric_set(mn_log_loss)
 )
 ```
+
+Przeprowadzamy ostateczne uczenie modeli, tym razem z konkretnymi hiperparametrami i na całym zbiorze treningowym.
 
 ### Nauka oraz ocena ostatecznych modeli
 
