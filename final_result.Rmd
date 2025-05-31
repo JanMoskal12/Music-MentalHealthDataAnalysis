@@ -5,7 +5,7 @@ date: "2025-05-31"
 output: html_document
 ---
 
-```{r setup, include=FALSE}
+```{r setup, echo=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
@@ -110,36 +110,6 @@ plot_binary_heatmap <- function(df, variable) {
 }
 ```
 
-```{r, include=FALSE}
-freq_cols <- grep("^Frequency \\[", names(data), value = TRUE)
-freq_levels <- c("Never", "Rarely", "Sometimes", "Very frequently")
-
-binary_vars <- c("Instrumentalist", "While working", "Composer", "Exploratory", "Foreign languages")
-
-long_freq <- data %>%
-  pivot_longer(cols = all_of(freq_cols), names_to = "Genre", values_to = "Frequency") %>%
-  mutate(Genre = str_remove_all(Genre, "^Frequency \\[|\\]$"), Frequency = factor(Frequency, levels = freq_levels, ordered = TRUE))
-
-df_depr <- data %>% 
-            mutate(Depression = recode(Depression, "Low"= 0, "Medium" = 1, "High" = 2))
-
-long_freq_count <- long_freq %>%
-                    group_by(Genre, Frequency) %>%
-                    summarise(count = n(), .groups = "drop")
-
-long_freq_depr <- long_freq %>% 
-                    mutate(Depression = recode(Depression,"Low"= 0, "Medium" = 1, "High" = 2),
-                           Frequency_num = as.numeric(Frequency))
-
-long_freq_age <- df %>% 
-  pivot_longer(cols = all_of(freq_cols), names_to = "Genre", values_to = "Frequency") %>%
-  mutate(Genre = str_remove_all(Genre, "^Frequency \\[|\\]$"), Frequency = factor(Frequency, levels = freq_levels, ordered = TRUE))
-
-long_bin_all <- data %>%
-                  select(all_of(freq_cols), all_of(binary_vars)) %>%
-                  pivot_longer(cols = all_of(freq_cols), names_to = "Genre", values_to = "Frequency") %>%
-                  mutate(Genre = str_remove_all(Genre, "Frequency \\[|\\]"))
-```
 
 ## Wstępne przygotowanie danych
 ### Wczytanie i obróbka danych
@@ -192,7 +162,7 @@ Pozostałe zmienne tekstowe zamieniamy na zmienne kategoryczne. Są tutaj zmienn
 
 #### Zamiana wieku na zmienną kategoryczną
 
-```{r, warning=FALSE}
+```{r, echo=FALSE, warning=FALSE}
 df %>% 
   ggplot(aes(x = Age)) +
   geom_histogram(col = "blue", fill = "lightblue", bins = 75) + 
@@ -209,21 +179,13 @@ df <- df %>%
 
 Ze względu na poprzednią obserwację zamienimy zmienną `Age` na zmienną kategoryczną z trzema kategoriami (Youth, Adult, Senior). Uznaliśmy, że może ona być przydatna w tej formie do eksploracyjnej analizy danych.
 
-```{r}
-df %>% 
-  filter(!is.na(Age)) %>%
-  ggplot(aes(x = Age, fill=Age)) +
-  geom_bar() +
-  theme_minimal() + 
-  theme(legend.position = "none") +
-  labs(title = "Rozkład wieku słuchaczy", x = "Wiek", y = "Liczba osób")
-```
-
 #### Zamiana zmiennej objaśnianej z typu numerycznego na typ kategoryczny z trzema kategoriami
 
 ```{r, warning=FALSE}
 quantiles <- quantile(df$Depression, probs = c(0.33, 0.66), na.rm = TRUE)
+```
 
+```{r, echo=FALSE}
 df %>%
   ggplot(aes(x = Depression)) +
   geom_histogram(binwidth = 1, fill = "lightblue", color = "black") +
@@ -243,7 +205,7 @@ df <- df %>%
 
 Rozpatrywanie zmiennej poziomu depresji w skali 0–10 byłoby problematyczne ze względu na dużą liczbę klas oraz wątpliwą interpretowalność drobnych różnic. Różnice między niskimi wartościami (np. 0, 1, 2) mogą być nieistotne, ponieważ osoby zaznaczające te poziomy zazwyczaj chcą jedynie zaznaczyć brak objawów depresyjnych. Podobnie wartości wysokie mogą być traktowane ogólnie jako wskazanie poważniejszych problemów, niezależnie od dokładnej liczby. Choć skrajne wartości mogą świadczyć o większej pewności odpowiedzi, zdecydowaliśmy się na przekształcenie tej zmiennej w trzy kategorie: Low, Medium i High. Podziału dokonano na podstawie kwantyli.
 
-```{r}
+```{r, echo=FALSE}
 df %>% 
   mutate(Depression = factor(Depression, levels = c("Low", "Medium", "High"))) %>% 
   ggplot(aes(x = Depression, fill = Depression)) + 
@@ -274,7 +236,7 @@ df <- readRDS("df.rds")
 
 #### Podstawowe statystyki opisowe dla zmiennych numerycznych
 
-```{r}
+```{r, echo=FALSE}
 df %>%
   select(where(is.numeric)) %>%
   summary()
@@ -284,7 +246,7 @@ Warto zwrócić uwagę, że w dwóch kolumnach numerycznych występują braki da
 
 #### Wykres macierzy korelacji dla zmiennych numerycznych
 
-```{r}
+```{r, echo=FALSE}
 df %>%
   select(where(is.numeric)) %>%
   cor(use = "complete.obs") %>%
@@ -296,7 +258,7 @@ Z analizy macierzy korelacji wynika, że nie występują istotne korelacje ani m
 
 #### Zestawienie liczby braków danych
 
-```{r}
+```{r,echo=FALSE}
 df %>%
   summarise_all(~sum(is.na(.))) %>%
   pivot_longer(everything(), names_to = "Zmienna", values_to = "Liczba braków") %>%
@@ -309,7 +271,7 @@ W zbiorze danych występują braki w siedmiu zmiennych. Najwięcej braków odnot
 ### Wykresy dotyczące zmiennych opisujących respondentów i ich ogólne zwyczaje muzyczne
 #### Rozkład wieku słuchacza
 
-```{r, warning=FALSE}
+```{r, echo=FALSE, warning=FALSE}
 df %>% 
   ggplot(aes(x = Age)) +
   geom_histogram(color = "blue", fill = "lightblue", bins = 40) + 
@@ -320,7 +282,7 @@ Wiek słuchaczy jest prawostronnie asymetryczny, z większością osób w przedz
 
 #### Związek między wiekiem słuchającego a poziomem depresji
 
-```{r, warning=FALSE}
+```{r, echo=FALSE, warning=FALSE}
 df %>% 
   mutate(Depression = factor(case_when(Depression <= 3 ~ "Low", Depression > 3 & Depression < 7 ~ "Medium", Depression >= 7 ~ "High"),
                              levels = c("Low", "Medium", "High"), ordered = TRUE)) %>% 
@@ -335,7 +297,14 @@ Dla niskiego poziomu depresji mamy największą różnorodność wieku słuchacz
 
 #### Rozkład preferowanego serwisu streamingowego
 
-```{r}
+```{r, echo=FALSE}
+plot_distribution(data, `Primary streaming service`, "Rozkład preferowanego serwisu streamingowego", "Preferowany serwis streamingowy")
+```
+
+Większość słuchaczy korzysta z Spotify, a następnie z YouTube i Apple Music. Co ciekawe jest również trzecia co do wielkości grupa słuchaczy, która nie słucha muzyki w serwisach streamingowych.
+
+#### Proporcje platform streamingowych wg poziomu depresji
+```{r, echo=FALSE}
 plot_prop_bar(data, `Primary streaming service`, "Proporcje platform streamingowych wg poziomu depresji", "Poziom depresji", "Udział", "Platforma streamingowa")
 ```
 
@@ -343,7 +312,7 @@ Dla kolejnych poziomów depresji zwiększa się ilość osób korzystających ze
 
 #### Rozkład dziennego czasu słuchania muzyki
 
-```{r}
+```{r, echo=FALSE}
 data %>% 
   ggplot(aes(x = `Hours per day`)) + 
   geom_histogram(color = "blue", fill = "lightblue", bins = 24) +
@@ -355,7 +324,7 @@ Czas słuchania muzyki jest prawostronnie asymetryczny, z większością osób s
 
 #### Związek między liczbą przesłuchanych godzin a poziomem depresji
 
-```{r}
+```{r, echo=FALSE}
 plot_boxplot(data, Depression, `Hours per day`, "Związek między liczbą przesłuchanych godzin a poziomem depresji", "Poziom depresji", "Liczba godzin")
 ```
 
@@ -363,23 +332,23 @@ Osoby z wyższym poziomem depresji mają tendencję do słuchania muzyki przez w
 
 #### Rozkład ulubionego gatunku muzycznego
 
-```{r}
+```{r, echo=FALSE}
 plot_distribution(data, `Fav genre`, "Rozkład ulubionego gatunku muzycznego", "Ulubiony gatunek muzyczny", fill_colors = colors)
 ```
 
 Ulubionymi gatunkami respondentów są głównie Rock, Pop oraz Metal.
 
-#### Proporcje ulubionego gatunku wg poziomu depresji
+#### Udział ulubionego gatunku wg poziomu depresji
 
-```{r}
-plot_prop_bar(data, `Fav genre`, "Proporcje ulubionego gatunku wg poziomu depresji", "Poziom depresji", "Udział", "Gatunek")
+```{r, echo=FALSE}
+plot_prop_bar(data, `Fav genre`, "Udział ulubionego gatunku wg poziomu depresji", "Poziom depresji", "Udział", "Gatunek")
 ```
 
 W grupie z wysoką depresją jest mniej osób słuchających metalu, muzyki z gier wideo, muzyki klasyczej, R&B. Rośnie za to liczba osób słuchających gatunków takich jak rock oraz hip hop.
 
 #### Rozkład liczby uderzeń na minutę (BPM)
 
-```{r}
+```{r, echo=FALSE}
 data %>%
   drop_na(BPM) %>%
   filter(BPM < 500) %>%
@@ -393,7 +362,7 @@ Liczba uderzeń na minutę jest w miarę symetryczna. Widoczne są obserwacje po
 
 #### Związek między BPM ulubionego gatunku a poziomem depresji
 
-```{r}
+```{r, echo=FALSE}
 plot_boxplot(data %>% filter(BPM < 500), Depression, BPM, "Związek między BPM ulubionego gatunku a poziomem depresji", "Poziom depresji", "Uderzenia na minutę (BPM)")
 ```
 
@@ -401,7 +370,7 @@ Nie widać znaczącego wpływu BPM na poziom depresji. Istnieje jedynie podejrze
 
 #### Rozkład słuchania muzyki podczas pracy/nauki
 
-```{r}
+```{r, echo=FALSE}
 plot_distribution(data, `While working`, "Rozkład słuchania muzyki podczas pracy/nauki", "Słuchanie podczas pracy/nauki")
 ```
 
@@ -409,7 +378,7 @@ Znacząca większość osób słucha muzyki podczas pracy lub nauki.
 
 #### Proporcje słuchania muzyki podczas pracy/nauki wg poziomu depresji
 
-```{r}
+```{r, echo=FALSE}
 plot_prop_bar(data, `While working`, "Proporcje słuchania muzyki podczas pracy/nauki wg poziomu depresji", "Poziom depresji", "Udział", "Słuchanie podczas pracy/nauki")
 ```
 
@@ -417,7 +386,7 @@ Osoby z wyższym poziomem depresji częściej słuchają muzyki podczas pracy lu
 
 #### Rozkład gry na instrumencie
 
-```{r}
+```{r, echo=FALSE}
 plot_distribution(data, Instrumentalist, "Rozkład gry na instrumencie", "Regularne granie na instrumencie")
 ```
 
@@ -425,7 +394,7 @@ Jak można było się spodziewać znacząca większość osób nie gra na instru
 
 #### Proporcje gry na instrumencie wg poziomu depresji
 
-```{r}
+```{r, echo=FALSE}
 plot_prop_bar(data, Instrumentalist, "Proporcje gry na instrumencie wg poziomu depresji", "Poziom depresji", "Udział", "Gra na instrumencie")
 ```
 
@@ -433,7 +402,7 @@ We wszystkich grupach ilość osób grających na instrumencie jest zbliżona.
 
 #### Rozkład komponowania muzyki
 
-```{r}
+```{r, echo=FALSE}
 plot_distribution(data, Composer, "Rozkład komponowania muzyki", "Komponowanie muzyki")
 ```
 
@@ -441,7 +410,7 @@ Znacząca większość osób nie komponuje muzyki, osób komponujących jest oko
 
 #### Proporcje komponowania muzyki wg poziomu depresji
 
-```{r}
+```{r, echo=FALSE}
 plot_prop_bar(data, Composer, "Proporcje komponowania muzyki wg poziomu depresji", "Poziom depresji", "Udział", "Komponowanie muzyki")
 ```
 
@@ -449,7 +418,7 @@ W grupie osób z wysoką depresją jest więcej osób komponujących muzykę. Mo
 
 #### Rozkład eksplorowania artystów/gatunków
 
-```{r}
+```{r, echo=FALSE}
 plot_distribution(data, Exploratory, "Rozkład eksplorowania artystów/gatunków", "Eksplorowanie artystów/gatunków")
 ```
 
@@ -457,7 +426,7 @@ Około 520 osób aktywnie eksploruje nowe gatunki oraz artystów. Około 210 os�
 
 #### Proporcje eksplorowania artystów/gatunków wg poziomu depresji
 
-```{r}
+```{r,echo=FALSE}
 plot_prop_bar(data, Exploratory, "Proporcje eksplorowania artystów/gatunków wg depresji", "Poziom depresji", "Udział", "Eksplorowanie")
 ```
 
@@ -465,7 +434,7 @@ Osoby z wyższym poziomem depresji częściej eksplorują nowych artystów i gat
 
 #### Rozkład słuchania w obcym języku
 
-```{r}
+```{r, echo=FALSE}
 plot_distribution(data, `Foreign languages`, "Rozkład słuchania w obcym języku", "Słuchanie w obcym języku")
 ```
 
@@ -473,16 +442,48 @@ Około 400 osób słucha muzyki w języku obcym zaś około 330 osób słucha mu
 
 #### Proporcje słuchania w obcym języku wg depresji
 
-```{r}
+```{r, echo=FALSE}
 plot_prop_bar(data, `Foreign languages`, "Proporcje słuchania w obcym języku wg depresji", "Poziom depresji", "Udział", "Słuchanie w obcym języku")
 ```
 
 Wraz ze wzrostem depresji rośnie liczba osób słuchających muzyki w obcym języku.
 
 ### Wykresy dotyczące zmiennych częstotliwości słuchania konkretnych gatunków
+
+```{r, include=FALSE}
+freq_cols <- grep("^Frequency \\[", names(data), value = TRUE)
+freq_levels <- c("Never", "Rarely", "Sometimes", "Very frequently")
+
+binary_vars <- c("Instrumentalist", "While working", "Composer", "Exploratory", "Foreign languages")
+
+long_freq <- data %>%
+              pivot_longer(cols = all_of(freq_cols), names_to = "Genre", values_to = "Frequency") %>%
+              mutate(Genre = str_remove_all(Genre, "^Frequency \\[|\\]$"), Frequency = factor(Frequency, levels = freq_levels, ordered = TRUE))
+
+df_depr <- data %>% 
+            mutate(Depression = recode(Depression, "Low"= 0, "Medium" = 1, "High" = 2))
+
+long_freq_count <- long_freq %>%
+                    group_by(Genre, Frequency) %>%
+                    summarise(count = n(), .groups = "drop")
+
+long_freq_depr <- long_freq %>% 
+                    mutate(Depression = recode(Depression,"Low"= 0, "Medium" = 1, "High" = 2),
+                           Frequency_num = as.numeric(Frequency))
+
+long_freq_age <- df %>% 
+                  pivot_longer(cols = all_of(freq_cols), names_to = "Genre", values_to = "Frequency") %>%
+                  mutate(Genre = str_remove_all(Genre, "^Frequency \\[|\\]$"), Frequency = factor(Frequency, levels = freq_levels, ordered = TRUE))
+
+long_bin_all <- data %>%
+                  select(all_of(freq_cols), all_of(binary_vars)) %>%
+                  pivot_longer(cols = all_of(freq_cols), names_to = "Genre", values_to = "Frequency") %>%
+                  mutate(Genre = str_remove_all(Genre, "Frequency \\[|\\]"))
+```
+
 #### Liczba osób słuchających danego gatunku z określoną częstotliwością słuchania
 
-```{r}
+```{r, echo=FALSE}
 long_freq %>% 
   count(Genre, Frequency) %>% 
   ggplot(aes(x = Genre, y = Frequency, fill = n)) +
@@ -496,7 +497,7 @@ long_freq %>%
 
 Najwięcej osób bardzo często słucha muzyki pop i rock, co nie dziwi – są to jedne z najpopularniejszych gatunków muzycznych. Rzadko zdarza się natomiast, by respondenci w ogóle nie słuchali tych dwóch stylów. Z kolei niewielki odsetek badanych deklaruje częste słuchanie takich gatunków jak gospel, country, latin czy jazz. Może to wynikać z ich mniejszej popularności wśród młodszych odbiorców oraz postrzegania ich jako bardziej egzotycznych. Warto również zauważyć, że bardzo wiele osób nigdy nie słuchało muzyki gospel, k-popu, latin lub country, co może być związane z kulturowym lub religijnym kontekstem tych gatunków.Możliwy wpływ ma również dostępność tych gatunków w mediach i na platformach streamingowych, a także język utworów – gatunki nieanglojęzyczne mogą być mniej przystępne.
 
-```{r}
+```{r, echo=FALSE}
 plot_mean_barplot(long_freq_count, "count", "Średnia liczba osób słuchających według częstotliwości słuchania", "Średnia liczba osób") +
   ylim(0, 300)
 ```
@@ -505,7 +506,7 @@ plot_mean_barplot(long_freq_count, "count", "Średnia liczba osób słuchającyc
 
 #### Średni poziom depresji w zależności od gatunku i częstotliwości słuchania
 
-```{r}
+```{r, echo=FALSE}
 plot_mean_heatmap(df_depr, "Depression", "Średni poziom depresji w zależności od gatunku i częstotliwości słuchania", "Średni poziom depresji")
 ```
 
@@ -513,7 +514,7 @@ Po zdekodowaniu poziomu depresji (Low = 0, Medium = 1, High = 2) zauważalne są
 
 #### Średni poziom depresji dla każdej częstotliwości słuchania
 
-```{r}
+```{r, echo=FALSE}
 plot_mean_barplot(long_freq_depr, "Depression", "Średni poziom depresji dla każdej częstotliwości słuchania", "Średni poziom depresji") + 
   ylim(0, 2)
 ```
@@ -522,7 +523,7 @@ plot_mean_barplot(long_freq_depr, "Depression", "Średni poziom depresji dla ka�
 
 #### Średnia liczba godzin słuchania muzyki według gatunku i częstotliwości słuchania
 
-```{r}
+```{r, echo=FALSE}
 plot_mean_heatmap(data, "Hours per day", "Średnia liczba godzin słuchania muzyki według gatunku i częstotliwości słuchania", "Liczba godzin")
 ```
 
@@ -530,7 +531,7 @@ Z wykresu wynika, że jeśli dana osoba deklaruje częste słuchanie muzyki dane
 
 #### Średni czas słuchania muzyki według częstotliwości słuchania
 
-```{r}
+```{r, echo=FALSE}
 plot_mean_barplot(long_freq, "Hours per day", "Średni czas słuchania muzyki według częstotliwości słuchania", "Liczba godzin") + 
   ylim(0, 5)
 ```
@@ -539,14 +540,14 @@ Zanim przejdziemy do analizy, warto zaznaczyć, że słupek „Never” nie odno
 
 #### Średni wiek słuchającego w zależności od gatunku i częstotliwości słuchania
 
-```{r}
+```{r, echo=FALSE}
 plot_mean_heatmap(df, "Age", "Średni wiek słuchającego w zależności od gatunku i częstotliwości słuchania", "Wiek")
 ```
 
 Ogólnie można zauważyć, że osoby, które słuchają muzyki bardzo często, są zazwyczaj młodsze od tych, które robią to rzadziej lub deklarują brak kontaktu z danym gatunkiem. Najniższe średnie wieki występują wśród intensywnych słuchaczy gatunków takich jak K-pop, pop, rap, video game music czy lofi, co potwierdza ich popularność wśród młodszych odbiorców. Z kolei najwyższe wartości średniego wieku pojawiają się wśród osób słuchających częściej muzyki klasycznej, gospel, country czy rocka, co może wskazywać na większe zainteresowanie tymi gatunkami wśród starszych grup. Wzorce te są spójne z ogólnymi trendami demograficznymi w odbiorze muzyki.
 
 #### Średni wiek słuchającego według częstotliwości słuchania
-```{r}
+```{r, echo=FALSE}
 plot_mean_barplot(long_freq_age, "Age", "Średni wiek słuchającego według częstotliwości słuchania", "Wiek") + 
   ylim(0, 30)
 ```
@@ -555,7 +556,7 @@ Można zauważyć, że osoby słuchające muzyki bardzo często są średnio wyr
 
 #### Proporcja liczby osób słuchających z daną częstotliwością słuchania ulubionego gatunku do wszystkich osób słuchających tego gatunku z tą częstotliwością słuchania
 
-```{r}
+```{r, echo=FALSE}
 long_freq %>% 
   mutate(is_fav = ifelse(Genre == `Fav genre`, 1, 0)) %>% 
   group_by(Genre, Frequency) %>% 
@@ -573,7 +574,7 @@ Silna preferencja ulubionego gatunku wiąże się z jego regularnym słuchaniem 
 
 #### Udział muzyków wśród słuchaczy danego gatunku i częstotliwości słuchania
 
-```{r}
+```{r, echo=FALSE}
 plot_binary_heatmap(long_bin_all, "Instrumentalist") +
   labs(title = "Udział muzyków wśród słuchaczy danego gatunku i częstotliwości słuchania", fill = "Udział muzyków")
 ```
@@ -581,7 +582,7 @@ plot_binary_heatmap(long_bin_all, "Instrumentalist") +
 Wykres pokazuje, że najwyższy udział muzyków wśród słuchaczy „Very frequently” dotyczy muzyki klasycznej (60%) i jazzu (57%) – oba te gatunki są silnie powiązane z formalnym wykształceniem muzycznym, wymagają dużych umiejętności technicznych i są obecne w edukacji muzycznej, co przyciąga osoby aktywnie grające. Odwrotnie sytuacja wygląda dla country, hip-hopu i R&B, gdzie udział muzyków jest relatywnie niski nawet wśród częstych słuchaczy – sugeruje to, że te gatunki są bardziej konsumenckie, tzn. słuchane głównie przez osoby nieuprawiające muzyki. Ciekawym zjawiskiem jest to, że osoby, które w ogóle nie słuchają popu, R&B, rapu, hip-hopu czy rocka, częściej są muzykami – może to wynikać z bardziej klasycznego lub niszowego gustu muzycznego muzyków, którzy unikają komercyjnych gatunków na rzecz tych bardziej technicznych, instrumentalnych lub poważnych.
 
 #### Udział kompozytorów wśród słuchaczy danego gatunku i częstotliwości słuchania
-```{r}
+```{r, echo=FALSE}
 plot_binary_heatmap(long_bin_all, "Composer") +
   labs(title = "Udział kompozytorów wśród słuchaczy danego gatunku i częstotliwości słuchania", fill = "Udział kompozytorów")
 ```
@@ -590,7 +591,7 @@ Wśród bardzo częstych słuchaczy jazzu, klasyki i metalu jest najwyższy odse
 
 #### Udział słuchaczy muzyki w trakcie pracy/nauki względem gatunku i częstotliwości słuchania
 
-```{r}
+```{r, echo=FALSE}
 plot_binary_heatmap(long_bin_all, "While working") +
   labs(title = "Proporcja słuchaczy muzyki w trakcie pracy/nauki względem gatunku i częstotliwości słuchania", fill = "Udział przy pracy/nauce")
 ```
@@ -598,7 +599,7 @@ plot_binary_heatmap(long_bin_all, "While working") +
 Większość często słuchanych gatunków muzycznych jest również wykorzystywana podczas pracy lub nauki. Nieco niższy udział (0.82 i mniej) obserwujemy w przypadku takich gatunków jak country, pop, metal czy rock – są to zazwyczaj utwory bardziej dynamiczne i angażujące, co może rozpraszać, dlatego rzadziej towarzyszą nauce czy pracy. Na tle innych wyraźnie wyróżnia się lofi, który osiąga prawie 90% udziału w słuchaniu podczas pracy/nauki. Co ciekawe, wśród osób, które go nie słuchają na co dzień, współczynnik ten jest najniższy w całym zestawieniu (0.68). Może to wynikać z faktu, że lofi to muzyka relaksująca, mało angażująca i najczęściej pozbawiona słów – jakby stworzona do towarzyszenia w skupieniu i pracy umysłowej.
 
 #### Udział aktywnie eksplorujących nowe gatunki i autorów względem gatunku i częstotliwości słuchania 
-```{r}
+```{r, echo=FALSE}
 plot_binary_heatmap(long_bin_all, "Exploratory") +
   labs(title = "Udział aktywnie eksplorujących nowe gatunki i autorów względem gatunku i częstotliwości słuchania", fill = "Udział eksplorujących")
 ```
@@ -606,7 +607,7 @@ plot_binary_heatmap(long_bin_all, "Exploratory") +
 Osoby często słuchające rapu i jazzu wykazują wysoką skłonność do eksplorowania nowych wykonawców i gatunków, co może wynikać z dynamicznego charakteru tych stylów – rap nieustannie się zmienia i przyciąga nowymi trendami, a jazz opiera się na improwizacji i fuzjach, co naturalnie sprzyja otwartości na nowe brzmienia. W przeciwieństwie do tego, osoby bardzo często słuchające gospelu mają niski współczynnik eksploracji (0,5), co może być związane z silnym emocjonalnym i duchowym przywiązaniem do konkretnych utworów i wykonawców – w tym przypadku muzyka pełni bardziej stałą, rytualną funkcję niż rozrywkową. Ciekawa jest też sytuacja popu – wśród osób, które deklarują, że go nie słuchają, eksploracja muzyczna jest bardzo niska. Może to wynikać z faktu, że pop jest wszędzie obecny i trudno go zupełnie uniknąć; jeśli ktoś to robi, najczęściej świadomie ogranicza się do jednego, alternatywnego stylu, rezygnując z poszukiwania nowych brzmień.
 
 #### Udział słuchaczy muzyki w językach obcych dla nich względem gatunku i częstotliwości słuchania
-```{r}
+```{r, echo=FALSE}
 plot_binary_heatmap(long_bin_all, "Foreign languages") +
   labs(title = "Udział słuchaczy muzyki w językach obcych dla nich względem gatunku i częstotliwości słuchania", fill = "Udział w języku obcym")
 ```
