@@ -32,7 +32,7 @@ df_train <- training(df_split)
 df_test <- testing(df_split)
 ```
 
-Nie mamy zbyt wiele danych dlatego do tej części uczenia użyjemy 75% danych.
+Nie mamy zbyt wiele danych do testowania, dlatego do tej części uczenia użyjemy 75% danych.
 
 ### Inicjalizacja modeli do uczenia
 ```{r}

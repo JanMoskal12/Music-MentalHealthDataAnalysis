@@ -1,5 +1,5 @@
 ---
-title: "Music & Mental Health - Final Result"
+title: "Music & Mental Health"
 author: "Jan Moskal i Szymon Makulec"
 date: "2025-05-31"
 output: html_document
@@ -10,23 +10,25 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 ```{r, include=FALSE, warning=FALSE, message=FALSE}
+library(tidymodels)
+library(tidyverse)
 library(kableExtra)
 library(ggcorrplot)
-library(tidyverse)
 library(patchwork)
 library(DescTools)
+library(doParallel)
+library(discrim)
+library(baguette)
 library(Metrics)
+library(themis)
 library(scales)
 library(e1071)
 library(mice)
 library(VIM)
+library(mda)
 ```
 
 ```{r, include=FALSE}
-colors <- c("#FFB300", "#803E75", "#FF6800", "#A6BDD7", "#C10020",
-            "#CEA262", "#817066", "#007D34", "#F6768E", "#00538A",
-            "#FF7A5C", "#53377A", "#FF8E00", "#B32851", "#F4C800", "#7F180D")
-
 plot_distribution <- function(df, var, title, xlab, fill_colors = NULL){
   df %>%
     drop_na({{var}}) %>%
@@ -110,8 +112,56 @@ plot_binary_heatmap <- function(df, variable) {
 }
 ```
 
+## Wstęp
+
+#### Cel projektu
+
+Głównym celem analizy jest opracowanie modelu klasyfikacyjnego, który umożliwi przewidywanie poziomu nasilenia zmiennej `Depression` (niskie, średnie, wysokie). Chcemy sprawdzić, czy dane dotyczące, sposobu słuchania muzyki, codziennych nawyków oraz częstotliwości słuchania konkretnych gatunków muzycznych itd. mogą być pomocne w przewidywaniu poziomu samopoczucia psychicznego, a konkretnie nasilenia objawów depresyjnych.
+
+#### Opis danych
+
+Dane pochodzą ze zbioru dostępnego na stronie [Kaggle](https://www.kaggle.com/datasets/catherinerasgaitis/mxmh-survey-results/data), który zawiera odpowiedzi respondentów na temat ich zwyczajów związanych ze słuchaniem muzyki oraz samooceny zdrowia psychicznego. Dane te mogą być pomocne w identyfikacji potencjalnych zależności między stylem życia muzycznego a samopoczuciem psychicznym.
+
+#### Opis zmiennych
+
+| Zmienna | Opis | Typ |
+|----------------|-----------------------------------------|----------------|
+| Timestamp | Data i czas przesłania formularza | datetime |
+| Age | Wiek respondenta | numeric |
+| Primarystreamingservice | Główna platforma streamingowa używana przez respondenta | factor |
+| Hoursperday | Liczba godzin dziennie, przez które respondent słucha muzyki | numeric |
+| Whileworking | Czy respondent słucha muzyki podczas nauki/pracy? | factor |
+| Instrumentalist | Czy respondent regularnie gra na instrumencie? | factor |
+| Composer | Czy respondent komponuje muzykę? | factor |
+| Favgenre | Ulubiony gatunek muzyczny respondenta | factor |
+| Exploratory | Czy respondent aktywnie odkrywa nowych artystów/gatunki? | factor |
+| Foreignlanguages | Czy respondent regularnie słucha muzyki z tekstami w języku, którego nie zna biegle? | factor |
+| BPM | Liczba uderzeń na minutę w ulubionym gatunku muzycznym | numeric |
+| Frequency[Classical] | Jak często respondent słucha muzyki klasycznej? | factor |
+| Frequency[Country] | Jak często respondent słucha muzyki country? | factor |
+| Frequency[EDM] | Jak często respondent słucha muzyki EDM? | factor |
+| Frequency[Folk] | Jak często respondent słucha muzyki folkowej? | factor |
+| Frequency[Gospel] | Jak często respondent słucha muzyki gospel? | factor |
+| Frequency[Hiphop] | Jak często respondent słucha muzyki hip-hop? | factor |
+| Frequency[Jazz] | Jak często respondent słucha muzyki jazzowej? | factor |
+| Frequency[Kpop] | Jak często respondent słucha muzyki K-pop? | factor |
+| Frequency[Latin] | Jak często respondent słucha muzyki latynoskiej? | factor |
+| Frequency[Lofi] | Jak często respondent słucha muzyki lo-fi? | factor |
+| Frequency[Metal] | Jak często respondent słucha muzyki metalowej? | factor |
+| Frequency[Pop] | Jak często respondent słucha muzyki pop? | factor |
+| Frequency[R&B] | Jak często respondent słucha muzyki R&B? | factor |
+| Frequency[Rap] | Jak często respondent słucha muzyki rap? | factor |
+| Frequency[Rock] | Jak często respondent słucha muzyki rockowej? | factor |
+| Frequency[Videogame music] | Jak często respondent słucha muzyki z gier wideo? | factor |
+| Anxiety | Nasilenie stanów lękowych w skali 0–10 | ordered factor |
+| Depression | Nasilenie depresji w skali 0–10 | factor |
+| Insomnia | Nasilenie problemów ze snem w skali 0–10 | ordered factor |
+| OCD | Nasilenie zaburzeń obsesyjno-kompulsyjnych w skali 0–10 | ordered factor |
+| Music effects | Subiektywny wpływ muzyki na zdrowie psychiczne | factor |
+| Permissions | Zgoda na wykorzystanie danych | factor |
 
 ## Wstępne przygotowanie danych
+
 ### Wczytanie i obróbka danych
 
 ```{r, message=FALSE}
@@ -160,32 +210,18 @@ Pozostałe zmienne tekstowe zamieniamy na zmienne kategoryczne. Są tutaj zmienn
 #saveRDS(df, "df.rds")
 ```
 
-#### Zamiana wieku na zmienną kategoryczną
-
-```{r, echo=FALSE, warning=FALSE}
-df %>% 
-  ggplot(aes(x = Age)) +
-  geom_histogram(col = "blue", fill = "lightblue", bins = 75) + 
-  theme_minimal() +
-  labs(title = "Rozkład wieku słuchaczy", x = "Wiek", y = "Liczba osób")
-```
-
-Rozkład wieku respondentów jest asymetryczny prawostronnie – obserwujemy znacznie mniej odpowiedzi od osób dorosłych i starszych. Jest to zjawisko naturalne, ponieważ na otwarte ankiety internetowe częściej odpowiadają osoby młodsze, lepiej zaznajomione z obsługą komputera, mające więcej czasu oraz częściej korzystające z muzyki w codziennym życiu za pośrednictwem platform streamingowych.
-
-```{r}
+```{r, include=FALSE}
 df <- df %>% 
   mutate(Age = cut(Age, breaks = c(0, 22, 40, Inf), labels = c("Youth", "Adult", "Senior"), right = TRUE))
 ```
 
-Ze względu na poprzednią obserwację zamienimy zmienną `Age` na zmienną kategoryczną z trzema kategoriami (Youth, Adult, Senior). Uznaliśmy, że może ona być przydatna w tej formie do eksploracyjnej analizy danych.
-
 #### Zamiana zmiennej objaśnianej z typu numerycznego na typ kategoryczny z trzema kategoriami
 
-```{r, warning=FALSE}
+```{r}
 quantiles <- quantile(df$Depression, probs = c(0.33, 0.66), na.rm = TRUE)
 ```
 
-```{r, echo=FALSE}
+```{r, echo=FALSE, warning=FALSE}
 df %>%
   ggplot(aes(x = Depression)) +
   geom_histogram(binwidth = 1, fill = "lightblue", color = "black") +
@@ -226,7 +262,9 @@ Jak widać, dane są dość zbalansowane – liczba obserwacji dla skrajnych poz
 Na koniec zapisujemy zbiór, który posłuży nam do eksploracyjnej analizy danych.
 
 ## Eksploracyjna analiza danych
+
 ### Statystyki opisowe
+
 #### Wczytywanie danych
 
 ```{r}
@@ -269,6 +307,7 @@ df %>%
 W zbiorze danych występują braki w siedmiu zmiennych. Najwięcej braków odnotowano w zmiennej `BPM` (107), co będzie wymagać specjalnego potraktowania, zapewne imputacji. Pozostałe zmienne zawierają pojedyncze braki: `Instrumentalist` i `Foreign languages` po 4, `While working` – 3, `Age`, `Primary streaming service` i `Composer` – po 1. W tych sytuacjach planujemy usunięcie odpowiednich wierszy lub zastąpienie braków ustalonymi wartościami.
 
 ### Wykresy dotyczące zmiennych opisujących respondentów i ich ogólne zwyczaje muzyczne
+
 #### Rozkład wieku słuchacza
 
 ```{r, echo=FALSE, warning=FALSE}
@@ -304,11 +343,12 @@ plot_distribution(data, `Primary streaming service`, "Rozkład preferowanego ser
 Większość słuchaczy korzysta z Spotify, a następnie z YouTube i Apple Music. Co ciekawe jest również trzecia co do wielkości grupa słuchaczy, która nie słucha muzyki w serwisach streamingowych.
 
 #### Proporcje platform streamingowych wg poziomu depresji
+
 ```{r, echo=FALSE}
 plot_prop_bar(data, `Primary streaming service`, "Proporcje platform streamingowych wg poziomu depresji", "Poziom depresji", "Udział", "Platforma streamingowa")
 ```
 
-Dla kolejnych poziomów depresji zwiększa się ilość osób korzystających ze Spotify, a zmniejsza się ilość osób korzystających z YouTube Music oraz zmniejsza się liczba osób, które nie korzystają z serwisów streamingowych. 
+Dla kolejnych poziomów depresji zwiększa się ilość osób korzystających ze Spotify, a zmniejsza się ilość osób korzystających z YouTube Music oraz zmniejsza się liczba osób, które nie korzystają z serwisów streamingowych.
 
 #### Rozkład dziennego czasu słuchania muzyki
 
@@ -398,7 +438,7 @@ Jak można było się spodziewać znacząca większość osób nie gra na instru
 plot_prop_bar(data, Instrumentalist, "Proporcje gry na instrumencie wg poziomu depresji", "Poziom depresji", "Udział", "Gra na instrumencie")
 ```
 
-We wszystkich grupach ilość osób grających na instrumencie jest zbliżona. 
+We wszystkich grupach ilość osób grających na instrumencie jest zbliżona.
 
 #### Rozkład komponowania muzyki
 
@@ -536,7 +576,7 @@ plot_mean_barplot(long_freq, "Hours per day", "Średni czas słuchania muzyki we
   ylim(0, 5)
 ```
 
-Zanim przejdziemy do analizy, warto zaznaczyć, że słupek „Never” nie odnosi się do osób, które w ogóle nie słuchają muzyki, lecz do liczby gatunków, których ktoś nie słucha wcale. Osoby deklarujące bardzo częste słuchanie muzyki spędzają na tym najwięcej czasu, podczas gdy osoby słuchające jej rzadziej poświęcają jej odpowiednio mniej czasu. Każda kolejna grupa częstotliwości charakteryzuje się nieco wyższym średnim czasem słuchania, co świadczy o spójności deklaracji z rzeczywistym zaangażowaniem czasowym. Może to również potwierdzać, że częstotliwość słuchania stanowi dobry wskaźnik ogólnej intensywności kontaktu z muzyką. Wzrost ten jest jednak stosunkowo nieduży. 
+Zanim przejdziemy do analizy, warto zaznaczyć, że słupek „Never” nie odnosi się do osób, które w ogóle nie słuchają muzyki, lecz do liczby gatunków, których ktoś nie słucha wcale. Osoby deklarujące bardzo częste słuchanie muzyki spędzają na tym najwięcej czasu, podczas gdy osoby słuchające jej rzadziej poświęcają jej odpowiednio mniej czasu. Każda kolejna grupa częstotliwości charakteryzuje się nieco wyższym średnim czasem słuchania, co świadczy o spójności deklaracji z rzeczywistym zaangażowaniem czasowym. Może to również potwierdzać, że częstotliwość słuchania stanowi dobry wskaźnik ogólnej intensywności kontaktu z muzyką. Wzrost ten jest jednak stosunkowo nieduży.
 
 #### Średni wiek słuchającego w zależności od gatunku i częstotliwości słuchania
 
@@ -547,6 +587,7 @@ plot_mean_heatmap(df, "Age", "Średni wiek słuchającego w zależności od gatu
 Ogólnie można zauważyć, że osoby, które słuchają muzyki bardzo często, są zazwyczaj młodsze od tych, które robią to rzadziej lub deklarują brak kontaktu z danym gatunkiem. Najniższe średnie wieki występują wśród intensywnych słuchaczy gatunków takich jak K-pop, pop, rap, video game music czy lofi, co potwierdza ich popularność wśród młodszych odbiorców. Z kolei najwyższe wartości średniego wieku pojawiają się wśród osób słuchających częściej muzyki klasycznej, gospel, country czy rocka, co może wskazywać na większe zainteresowanie tymi gatunkami wśród starszych grup. Wzorce te są spójne z ogólnymi trendami demograficznymi w odbiorze muzyki.
 
 #### Średni wiek słuchającego według częstotliwości słuchania
+
 ```{r, echo=FALSE}
 plot_mean_barplot(long_freq_age, "Age", "Średni wiek słuchającego według częstotliwości słuchania", "Wiek") + 
   ylim(0, 30)
@@ -582,6 +623,7 @@ plot_binary_heatmap(long_bin_all, "Instrumentalist") +
 Wykres pokazuje, że najwyższy udział muzyków wśród słuchaczy „Very frequently” dotyczy muzyki klasycznej (60%) i jazzu (57%) – oba te gatunki są silnie powiązane z formalnym wykształceniem muzycznym, wymagają dużych umiejętności technicznych i są obecne w edukacji muzycznej, co przyciąga osoby aktywnie grające. Odwrotnie sytuacja wygląda dla country, hip-hopu i R&B, gdzie udział muzyków jest relatywnie niski nawet wśród częstych słuchaczy – sugeruje to, że te gatunki są bardziej konsumenckie, tzn. słuchane głównie przez osoby nieuprawiające muzyki. Ciekawym zjawiskiem jest to, że osoby, które w ogóle nie słuchają popu, R&B, rapu, hip-hopu czy rocka, częściej są muzykami – może to wynikać z bardziej klasycznego lub niszowego gustu muzycznego muzyków, którzy unikają komercyjnych gatunków na rzecz tych bardziej technicznych, instrumentalnych lub poważnych.
 
 #### Udział kompozytorów wśród słuchaczy danego gatunku i częstotliwości słuchania
+
 ```{r, echo=FALSE}
 plot_binary_heatmap(long_bin_all, "Composer") +
   labs(title = "Udział kompozytorów wśród słuchaczy danego gatunku i częstotliwości słuchania", fill = "Udział kompozytorów")
@@ -598,7 +640,8 @@ plot_binary_heatmap(long_bin_all, "While working") +
 
 Większość często słuchanych gatunków muzycznych jest również wykorzystywana podczas pracy lub nauki. Nieco niższy udział (0.82 i mniej) obserwujemy w przypadku takich gatunków jak country, pop, metal czy rock – są to zazwyczaj utwory bardziej dynamiczne i angażujące, co może rozpraszać, dlatego rzadziej towarzyszą nauce czy pracy. Na tle innych wyraźnie wyróżnia się lofi, który osiąga prawie 90% udziału w słuchaniu podczas pracy/nauki. Co ciekawe, wśród osób, które go nie słuchają na co dzień, współczynnik ten jest najniższy w całym zestawieniu (0.68). Może to wynikać z faktu, że lofi to muzyka relaksująca, mało angażująca i najczęściej pozbawiona słów – jakby stworzona do towarzyszenia w skupieniu i pracy umysłowej.
 
-#### Udział aktywnie eksplorujących nowe gatunki i autorów względem gatunku i częstotliwości słuchania 
+#### Udział aktywnie eksplorujących nowe gatunki i autorów względem gatunku i częstotliwości słuchania
+
 ```{r, echo=FALSE}
 plot_binary_heatmap(long_bin_all, "Exploratory") +
   labs(title = "Udział aktywnie eksplorujących nowe gatunki i autorów względem gatunku i częstotliwości słuchania", fill = "Udział eksplorujących")
@@ -607,9 +650,483 @@ plot_binary_heatmap(long_bin_all, "Exploratory") +
 Osoby często słuchające rapu i jazzu wykazują wysoką skłonność do eksplorowania nowych wykonawców i gatunków, co może wynikać z dynamicznego charakteru tych stylów – rap nieustannie się zmienia i przyciąga nowymi trendami, a jazz opiera się na improwizacji i fuzjach, co naturalnie sprzyja otwartości na nowe brzmienia. W przeciwieństwie do tego, osoby bardzo często słuchające gospelu mają niski współczynnik eksploracji (0,5), co może być związane z silnym emocjonalnym i duchowym przywiązaniem do konkretnych utworów i wykonawców – w tym przypadku muzyka pełni bardziej stałą, rytualną funkcję niż rozrywkową. Ciekawa jest też sytuacja popu – wśród osób, które deklarują, że go nie słuchają, eksploracja muzyczna jest bardzo niska. Może to wynikać z faktu, że pop jest wszędzie obecny i trudno go zupełnie uniknąć; jeśli ktoś to robi, najczęściej świadomie ogranicza się do jednego, alternatywnego stylu, rezygnując z poszukiwania nowych brzmień.
 
 #### Udział słuchaczy muzyki w językach obcych dla nich względem gatunku i częstotliwości słuchania
+
 ```{r, echo=FALSE}
 plot_binary_heatmap(long_bin_all, "Foreign languages") +
   labs(title = "Udział słuchaczy muzyki w językach obcych dla nich względem gatunku i częstotliwości słuchania", fill = "Udział w języku obcym")
 ```
 
 W danych wyraźnie widoczne są istotne różnice między gatunkami pod względem udziału muzyki w językach obcych. K-pop (95%) i Latin (85%) to gatunki, które są niemal zawsze słuchane w językach innych niż ojczysty – co wynika z ich międzynarodowego charakteru i popularności poza krajem pochodzenia słuchaczy. Z kolei Gospel (36%) i Country (41%) mają najniższy udział muzyki obcojęzycznej, nawet wśród osób słuchających ich bardzo często. Są to style silnie związane z lokalną tradycją i tożsamością kulturową, przez co rzadziej występują w wersjach językowo zróżnicowanych.
+
+## Imputacja i usuwanie brakujących danych
+
+```{r, include=FALSE}
+df <- df %>% 
+        mutate(Depression = case_when(Depression <= 3 ~ "Low",
+                                      Depression > 3 & Depression < 7 ~ "Medium",
+                                      Depression >= 7 ~ "High"),
+               Depression = factor(Depression, levels = c("Low", "Medium", "High")))
+```
+
+#### Liczba braków danych
+
+```{r}
+sum(is.na(df))
+```
+
+#### Liczba braków danych dla każdej kolumny
+
+```{r}
+colSums(is.na(df))
+```
+
+Braki danych występują w kilku kolumnach, jednak w większości przypadków jest ich bardzo niewiele. Najwięcej braków znajduje się w kolumnie BPM, gdzie odnotowano 107 brakujących wartości.
+
+#### Liczba braków danych dla wierszy
+
+```{r}
+res <- md.pattern(df, plot = TRUE, rotate.names = TRUE)
+```
+
+Mamy 104 obserwacje z pojedyńczym brakiem danych w kolumnie BPM. Pozostałe braki danych są już jednostkowe. Mamy jedną obserwację gdzie brakuje 5 wartości, ponieważ jest tylko jedna to taką obserwację poprostu usuwamy. Braki danych z kolumny BPM uzupełnimy średnimi grupowymi dla konkretnych gatunków muzycznych, ponieważ w ten sposób dane będą bardziej rzeczywiste niż gdybyśmy uzupełnili je średnią dla całej kolumny.
+
+#### Odstające wartości w kolumnie BPM
+
+```{r}
+data$BPM[data$BPM >= 600 | data$BPM <= 20] <- NA
+```
+
+Nierealne wartości BPM (8 obserwacji) zastąpiliśmy brakami danych, ponieważ lepsze to niż tracenie informacji.
+
+#### Uzupełnianie braków danych w kolumnie BPM
+
+```{r}
+means <- aggregate(BPM ~ `Fav genre`, data = data, FUN = function(x) round(mean(x[x > 0], na.rm = TRUE), 0))
+```
+
+```{r}
+set.seed(123)
+
+idx <- which(is.na(data$BPM))
+values <- numeric(length(idx))
+
+m <- rnorm(length(idx), mean = 1, sd = 0.05)
+
+for (j in 1:115) {
+  genre <- data$`Fav genre`[idx[j]]
+  base <- means[means$`Fav genre` == genre, 'BPM']
+  values[j] <- base * m[j]
+}
+
+data$BPM[idx] <- round(values, 0)
+```
+
+Braki danych w zmiennej BPM zostały uzupełnione średnimi grupowymi z dodaniem losowego szumu, a następnie zaokrąglone do wartości całkowitych, ponieważ tylko takie wartości mają sens logiczny w kontekście BPM.
+
+#### Wartości którymi wypełniono braki danych w kolumnie BPM
+
+```{r}
+data[idx, c("Fav genre", "BPM")] %>%
+  mutate(Index = idx) %>%
+  select(Index, `Fav genre`, BPM) %>%
+  arrange(`Fav genre`)
+```
+
+#### Sprawdzenie jakie braki danych nam zostały po usunięciu tych z kolumny BPM
+
+```{r}
+res <- md.pattern(data, plot = TRUE, rotate.names = TRUE)
+```
+
+#### Usunięcie wiersza z czterema brakami danych
+
+```{r}
+data <- data[rowSums(is.na(data)) != 4, ] 
+```
+
+Po usunięciu pojedyńczego wiersza z 4 brakami danych pozostają już nam jedynie obserwacje z pojedyńczymi brakami. Uzupełnimy je proprzez imputację z wykorzystaniem pakietu `mice`.
+
+```{r, warning=FALSE}
+set.seed(2025)
+
+colnames(data) <- make.names(colnames(data))
+
+imp <- mice(data,
+            m = 1,
+            seed = 2025,
+            printFlag = F)
+
+
+data <- complete(imp,1)
+```
+
+#### Rezultat usuwania i uzupełniania braków danych
+
+```{r}
+res <- md.pattern(data, plot = TRUE, rotate.names = TRUE)
+```
+
+Jak widać pozostają nam 735 obserwacje bez braków danych.
+
+#### Zapisywanie zbioru danych po uzupełnieniu oraz usunięciu wszystkich braków danych
+
+```{r}
+#saveRDS(data, "data_no_missing_values.rds")
+```
+
+## Budowa modeli
+
+### Wstępne modelowanie
+
+```{r, include=FALSE}
+df <- readRDS("data_no_missing_values.rds")
+```
+
+#### Podział danych na zbiór treningowy i testowy
+
+```{r}
+set.seed(123)
+
+split <- initial_split(df, prop = 0.8, strata = "Depression")
+train <- training(split)
+test <- testing(split)
+```
+
+Dzielimy dane na zbiór uczący oraz testowy z zachowaniem proporcji klas w kolumnie `Depression`.
+
+#### Inicjalizacja modeli do uczenia
+
+```{r}
+models <- list(
+            nb = naive_Bayes(mode = "classification",
+                             engine = "klaR"),
+            
+            svm = svm_rbf(mode = "classification",
+                         engine = "kernlab"),
+            
+            dt = decision_tree(mode = "classification",
+                               engine = "rpart"),
+            
+            mlp = mlp(mode = "classification",
+                      engine = "nnet"),
+            
+            knn = nearest_neighbor(mode = "classification",
+                                   engine = "kknn"),
+            
+            rf = rand_forest(mode = "classification",
+                             engine = "ranger"),
+  
+            xgb = boost_tree(mode = "classification",
+                             engine = "xgboost"),
+  
+            lda = discrim_linear(mode = "classification",
+                                 engine = "MASS")
+)
+```
+
+Inicjalizujemy listę modeli kolejno: Naive Bayes, SVM, Decision Tree, MLP, KNN, Random Forest, XGBoost oraz LDA. Celem tego etapu jest wstępna ocena skuteczności różnych rodzin modeli na naszych danych. Na podstawie uzyskanych wyników wybierzemy cztery najlepiej rokujące algorytmy, które następnie zostaną poddane dalszej analizie i dostrajaniu hiperparametrów.
+
+#### Utworzenie przepisów przetwarzania danych
+
+```{r}
+recipes <- list(
+            rec_norm = recipe(Depression ~ ., data = train) %>%
+                        step_normalize(all_numeric_predictors())  %>%
+                        step_dummy(all_nominal_predictors()),
+            
+            rec_pca_60 = recipe(Depression ~ ., data = train) %>%
+                        step_normalize(all_numeric_predictors()) %>%
+                        step_dummy(all_nominal_predictors()) %>%
+                        step_pca(all_predictors(), threshold = 0.6),
+            
+            rec_pca_80 = recipe(Depression ~ ., data = train) %>%
+                        step_normalize(all_numeric_predictors()) %>%
+                        step_dummy(all_nominal_predictors()) %>%
+                        step_pca(all_predictors(), threshold = 0.8)
+)
+```
+
+Będziemy testować modele na różnych poziomach PCA. Przetestowanie modeli z różnymi wariantami przygotowania danych pozwoli na ocenę, która metoda wstępnego przetwarzania jest najkorzystniejsza dla danego algorytmu.
+
+#### Utworzenie przepływów modelowania
+
+```{r}
+wflows <- workflow_set(
+            preproc = recipes,
+            models = models,
+            cross = TRUE
+)
+```
+
+Tworzymy obiekt workflow_set z flagą cross=TRUE, czyli każdy model zostanie przetestowany na każdym przepisie.
+
+#### Generowanie foldów walidacyjnych
+
+```{r}
+folds <- vfold_cv(train, v = 10)
+```
+
+Tworzymy 10-krotną walidację krzyżową na zbiorze treningowym.
+
+#### Trenowanie modeli
+
+```{r, eval=FALSE}
+registerDoParallel(cores = parallel::detectCores() - 1)
+keep_pred <- control_resamples(save_pred = TRUE, save_workflow = TRUE)
+
+initial_wflows <- wflows %>% 
+                    workflow_map(
+                      "fit_resamples",
+                      resamples = folds,
+                      control = keep_pred,
+                      verbose = FALSE
+)
+```
+
+Na tym etapie przeprowadzamy trenowanie wszystkich wcześniej przygotowanych modeli z wykorzystaniem walidacji krzyżowej. Dzięki temu możemy porównać ich skuteczność oraz wyłonić te algorytmy, które najlepiej radzą sobie z naszym problemem.
+
+#### Wyniki dla procesu modelowania
+
+```{r, include=FALSE}
+initial_wflows <- readRDS("mxmh_initial_models.rds")
+```
+
+```{r}
+initial_wflows %>%
+  collect_metrics() %>% 
+  group_by(.metric) %>% 
+  arrange(.metric, desc(mean))
+```
+
+Ze wstępnych wyników do dalszej części weźmiemy modele LDA, Random Forest, SVM oraz XGBoost.
+
+#### Zapisanie wyników wstępnego modelowania
+
+```{r}
+#saveRDS(wflows, "mxmh_initial_models.rds")
+```
+
+### Dostrajanie hiperparametrów wybranych modeli
+
+#### Podział danych na zbiór treningowy i testowy
+
+```{r}
+set.seed(123)
+
+df_split <- initial_split(df, prop = 0.75, strata = "Depression")
+df_train <- training(df_split)
+df_test <- testing(df_split)
+```
+
+Nie mamy zbyt wiele danych do testowania, dlatego do tej części uczenia użyjemy 75% danych.
+
+#### Inicjalizacja modeli do treningu i strojenia hiperparametrów najlepszych algorytmów
+
+```{r}
+models <- list(
+            lda = discrim_linear(
+              regularization_method = "diagonal",
+              penalty = tune(),
+              mode = "classification") %>% 
+              set_engine("mda"),
+              
+            rf = rand_forest(
+              trees = tune(),
+              min_n = tune(),
+              mtry = tune(),
+              mode = "classification") %>%
+              set_engine("ranger"),
+  
+            xgb = boost_tree(
+              trees = tune(),
+              min_n = tune(),
+              mtry = tune(),
+              learn_rate = tune(),
+              mode = "classification") %>%
+              set_engine("xgboost"),
+  
+            svm = svm_rbf(
+              cost = tune(),
+              rbf_sigma = tune(),
+              mode = "classification") %>%
+              set_engine("kernlab")
+)
+```
+
+Inicjalizujemy cztery modele, które osiągnęły najlepsze wyniki w etapie wstępnego trenowania. Modele te zostaną teraz poddane strojeniu hiperparametrów w celu dalszej poprawy ich skuteczności.
+
+#### Utworzenie przepisów przetwarzania danych
+
+```{r}
+recipes <- list(
+            rec_lda = recipe(Depression ~ ., data = df_train) %>%
+                        step_normalize(all_numeric_predictors()) %>%
+                        step_dummy(all_nominal_predictors()) %>%
+                        step_pca(starts_with("Frequency"), num_comp = 12) %>% 
+                        step_pca(all_predictors(), threshold = 0.85, prefix = "pca_"),
+            
+            rec_rf = recipe(Depression ~ ., data = df_train) %>%
+                        step_normalize(all_numeric_predictors())  %>%
+                        step_dummy(all_nominal_predictors()) %>% 
+                        step_pca(starts_with("Frequency"), num_comp = 12) %>% 
+                        step_pca(all_predictors(), threshold = 0.85, prefix = "pca_") %>% 
+                        step_nzv(all_predictors()),
+
+            rec_xgb = recipe(Depression ~ ., data = df_train) %>%
+                        step_normalize(all_numeric_predictors()) %>%
+                        step_dummy(all_nominal_predictors()) %>%
+                        step_pca(starts_with("Frequency"), num_comp = 12) %>% 
+                        step_pca(all_predictors(), threshold = 0.85, prefix = "pca_")%>% 
+                        step_nzv(all_predictors()),
+            
+            rec_svm = recipe(Depression ~ ., data = df_train) %>%
+                        step_normalize(all_numeric_predictors()) %>%
+                        step_dummy(all_nominal_predictors()) %>%
+                        step_pca(starts_with("Frequency"), num_comp = 12) %>% 
+                        step_pca(all_predictors(), threshold = 0.8, prefix = "pca_") 
+)
+```
+
+Dobór przepisów został dokonany ze względu na to jaka jest struktura naszego zbioru danych, tj. mamy wiele kolumn typu factor oraz powiązanych ze sobą ze względu na dziedzinę jak chociażby częstotliwość słuchania różnych gatunków. Ponadto odpowiedzi są subiektywne dlatego nie niosą czystej informacji.
+
+#### Utworzenie przepływów modelowania
+
+```{r}
+class_models <- workflow_set(
+                  preproc = recipes,
+                  models = models,
+                  cross = FALSE
+)
+```
+
+Tym razem uczenie będzie przebiegało w formie jeden model do jednego przepisu.
+
+#### Generowanie foldów walidacyjnych
+
+```{r}
+cv_folds <- vfold_cv(df_train, v = 5, strata = "Depression")
+```
+
+Tym razem wykrozystamy 5-krotną walidację krzyżową.
+
+#### Trenowanie modeli z walidacją krzyżową i tuningiem siatki hiperparametrów
+
+```{r, eval=FALSE}
+registerDoParallel(cores = parallel::detectCores() - 1)
+controlGrid <- control_grid(save_pred = TRUE, save_workflow = TRUE, verbose = TRUE)
+
+class_models <- workflow_map(
+                  class_models,
+                  "tune_grid", 
+                  resamples = cv_folds,
+                  grid = 50,
+                  control = controlGrid,
+                  metrics = metric_set(mn_log_loss, kap),
+                  verbose = TRUE,
+)
+```
+
+Model będzie optymalizowany pod kątem metryki mn_log_loss, która jest dobrze dopasowana do problemów klasyfikacji wieloklasowej, ponieważ uwzględnia pewność predykcji. Do strojenia używamy siatki z 50 kombinacjami, co zapewnia wystarczającą różnorodność konfiguracji hiperparametrów, pozwalając na znalezienie optymalnych ustawień.
+
+#### Zapisywanie wyników dostrajania hiperparametrów
+
+```{r}
+#saveRDS(class_models, "mxmh_models_kap3.rds")
+```
+
+```{r, include=FALSE}
+class_models <- readRDS("mxmh_models_kap3.rds")
+```
+
+#### Ocena modeli
+
+```{r}
+metrics <- collect_metrics(class_models)
+
+metrics %>% 
+  arrange(.metric, desc(mean))
+```
+
+#### Najlepsze parametry dla każdego z czterech modeli
+
+```{r}
+best_params_list <- class_models %>%
+                      mutate(best = map(result, ~ select_best(.x, metric = "mn_log_loss"))) %>%
+                      select(wflow_id, best)
+
+lda_params <- best_params_list$best[[1]]
+rf_params <- best_params_list$best[[2]]
+xgb_params <- best_params_list$best[[3]]
+svm_params <- best_params_list$best[[4]]
+```
+
+Tworzymy listę najlepszych parametrów dla każdego z modeli startowych.
+
+#### Deklaracja modeli z najlepszymi hiperparametrami
+
+```{r}
+models_final <- list(
+            lda = discrim_linear(
+              regularization_method = "diagonal",
+              penalty = lda_params[[1]],
+              mode = "classification") %>% 
+              set_engine("mda"),
+              
+            rf = rand_forest(
+              trees = rf_params[[2]],
+              min_n = rf_params[[3]],
+              mtry = rf_params[[1]],
+              mode = "classification") %>%
+              set_engine("ranger"),
+  
+            xgb = boost_tree(
+              trees = xgb_params[[2]],
+              min_n = xgb_params[[3]],
+              mtry = xgb_params[[1]]	,
+              learn_rate = xgb_params[[4]],
+              mode = "classification") %>%
+              set_engine("xgboost"),
+  
+            svm = svm_rbf(
+              cost = svm_params[[1]],
+              rbf_sigma = svm_params[[2]],
+              mode = "classification") %>%
+              set_engine("kernlab")
+)
+```
+
+Deklarujemy cztery modele z wcześniej wybranymi najlepszymi zestawami hiperparametrów, Parametry te zostały wytypowane na podstawie wyników strojenia w poprzednim etapie,co pozwala nam teraz przeprowadzić finalne trenowanie każdego z modeli na zbiorze treningowym.
+
+#### Przygotowanie przepisów przetwarzania danych do finalnego trenowania modeli
+
+```{r}
+recipes <- list(
+            rec_lda = recipe(Depression ~ ., data = df_train) %>%
+                        step_normalize(all_numeric_predictors()) %>%
+                        step_dummy(all_nominal_predictors()) %>%
+                        step_pca(starts_with("Frequency"), num_comp = 12) %>% 
+                        step_pca(all_predictors(), threshold = 0.9, prefix = "pca_"),
+            
+            rec_rf = recipe(Depression ~ ., data = df_train) %>%
+                        step_normalize(all_numeric_predictors())  %>%
+                        step_dummy(all_nominal_predictors()) %>% 
+                        step_pca(starts_with("Frequency"), num_comp = 12) %>% 
+                        step_pca(all_predictors(), threshold = 0.9, prefix = "pca_") %>% 
+                        step_nzv(all_predictors()),
+
+            rec_xgb = recipe(Depression ~ ., data = df_train) %>%
+                        step_normalize(all_numeric_predictors()) %>%
+                        step_dummy(all_nominal_predictors()) %>%
+                        step_pca(starts_with("Frequency"), num_comp = 12) %>% 
+                        step_pca(all_predictors(), threshold = 0.9, prefix = "pca_")%>% 
+                        step_nzv(all_predictors()),
+            
+            rec_svm = recipe(Depression ~ ., data = df_train) %>%
+                        step_normalize(all_numeric_predictors()) %>%
+                        step_dummy(all_nominal_predictors()) %>%
+                        step_pca(starts_with("Frequency"), num_comp = 12) %>% 
+                        step_pca(all_predictors(), threshold = 0.9, prefix = "pca_") 
+)
+```
+
+W tym etapie przygotowujemy osobne przepisy przetwarzania danych dla każdego modelu, wykorzystując pełny zbiór treningowy (bez walidacji krzyżowej). Dzięki temu modele będą mogły uczyć się na większej liczbie danych.
