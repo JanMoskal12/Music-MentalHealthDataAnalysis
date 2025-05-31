@@ -33,7 +33,7 @@ Usuwamy zmienne niezwiązane bezpośrednio z analizowaną problematyką (Timesta
 glimpse(df)
 ```
 
-Po usunięciu niepotrzebnych zmiennych w zbiorze zostało 27 kolumn, z czego większość to narazie zmienne tekstowe, jednak po zmianach będą to zmienne czynnikowe (często uporządkowane). Mamy też kilka zmiennych numerycznych. Mamy 736 obserwacje, gdzie każda oznacza wypełnienie ankiety przez jedną osobę. 
+Po usunięciu niepotrzebnych zmiennych w zbiorze zostało 27 kolumn, z czego większość to narazie zmienne tekstowe, jednak po zmianach będą to zmienne czynnikowe (często uporządkowane). Mamy też kilka zmiennych numerycznych. Mamy 736 obserwacje, gdzie każda oznacza wypełnienie ankiety przez jedną osobę.
 
 #### Ustawianie odpowiedniej kolejności poziomów w zmiennych dotyczących częstotliwości słuchania konkretnych gatunków
 
@@ -44,9 +44,9 @@ df <- df %>%
         mutate(across(`Frequency [Classical]`:`Frequency [Video game music]`, function(x) factor(x, levels = custom_levels, ordered = TRUE)))
 ```
 
-Wszystkie kolumny dotyczące częstotliwości słuchania danych zamieniamy na uporządkowane kategoryczne, ponieważ widać w ich przypadku naturalny porządek kategorii. 
+Wszystkie kolumny dotyczące częstotliwości słuchania danych zamieniamy na uporządkowane kategoryczne, ponieważ widać w ich przypadku naturalny porządek kategorii.
 
-#### Ustawienie pozostałych zmiennych typu znakowego na zmienne kategoryczne
+#### Ustawienie pozostałych zmiennych typu tekstowego na zmienne kategoryczne
 
 ```{r}
 df <- df %>% 
@@ -56,12 +56,11 @@ df <- df %>%
 
 Pozostałe zmienne tekstowe zamieniamy na zmienne kategoryczne. Są tutaj zmienne, które przyjmują wiele wartości tzn. `Primary streaming service`, `Fav genre` oraz zmienne binarne (pozostałe).
 
-#### Zapisanie ramki danych po przekształceniach 
+#### Zapisanie ramki danych po przekształceniach
 
 ```{r}
 #saveRDS(df, "df.rds")
 ```
-
 
 #### Zamiana wieku na zmienną kategoryczną
 
@@ -80,7 +79,7 @@ df <- df %>%
   mutate(Age = cut(Age, breaks = c(0, 22, 40, Inf), labels = c("Youth", "Adult", "Senior"), right = TRUE))
 ```
 
-Ze względu na poprzednią obserwację zamienimy zmienną `Age` na zmienną kategoryczną z trzema kategoriami (Youth, Adult, Senior). Uznaliśmy, że może ona być przydatna w tej formie do eksploracyjnej analizy danych
+Ze względu na poprzednią obserwację zamienimy zmienną `Age` na zmienną kategoryczną z trzema kategoriami (Youth, Adult, Senior). Uznaliśmy, że może ona być przydatna w tej formie do eksploracyjnej analizy danych.
 
 ```{r}
 df %>% 
@@ -128,7 +127,7 @@ df %>%
 
 Jak widać, dane są dość zbalansowane – liczba obserwacji dla skrajnych poziomów (niskiego i wysokiego) jest nieco większa. Pozostawiamy ten podział bez zmian, ponieważ mniejsza liczba obserwacji w kategorii średniej nie jest problemem – to właśnie w tej grupie trudniej jednoznacznie określić stan respondenta. W przypadku poziomów niskiego i wysokiego można z większym prawdopodobieństwem założyć, że dana osoba odpowiednio nie doświadcza lub wyraźnie doświadcza objawów.
 
-#### Wyniki czyszczenia i transformacji danych do EDA
+#### Zapisanie ramki danych po czyszczeniu i transformacji danych do EDA
 
 ```{r}
 #saveRDS(df, "df_EDA.rds")

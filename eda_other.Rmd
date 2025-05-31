@@ -157,7 +157,6 @@ plot_prop_bar(data, `While working`, "Proporcje słuchania muzyki podczas pracy/
 
 Osoby z wyższym poziomem depresji częściej słuchają muzyki podczas pracy lub nauki.
 
-
 ### Rozkład gry na instrumencie
 ```{r}
 plot_distribution(data, Instrumentalist, "Rozkład gry na instrumencie", "Regularne granie na instrumencie")
