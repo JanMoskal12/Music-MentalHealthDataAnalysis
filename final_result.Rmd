@@ -110,13 +110,28 @@ plot_binary_heatmap <- function(df, variable) {
     theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
     labs(x = "Gatunek", y = "Częstotliwość słuchania", fill = "Proporcja")
 }
+
+adjust_levels <- function(pred_df) {
+  pred_df$.pred_class <- factor(pred_df$.pred_class, levels = levels_order, ordered = TRUE)
+  pred_df$Depression <- factor(pred_df$Depression, levels = levels_order, ordered = TRUE)
+  pred_df
+}
+
+get_metrics <- function(pred_df) {
+  metric_set(mn_log_loss, kap)(
+    pred_df,
+    truth = Depression,
+    estimate = .pred_class,
+    .pred_Low, .pred_Medium, .pred_High
+  )
+}
 ```
 
 ## Wstęp
 
 #### Cel projektu
 
-Głównym celem analizy jest opracowanie modelu klasyfikacyjnego, który umożliwi przewidywanie poziomu nasilenia zmiennej `Depression` (niskie, średnie, wysokie). Chcemy sprawdzić, czy dane dotyczące, sposobu słuchania muzyki, codziennych nawyków oraz częstotliwości słuchania konkretnych gatunków muzycznych itd. mogą być pomocne w przewidywaniu poziomu samopoczucia psychicznego, a konkretnie nasilenia objawów depresyjnych.
+Głównym celem analizy jest opracowanie modelu klasyfikacyjnego, który umożliwi przewidywanie poziomu nasilenia zmiennej `Depression` (niskie, średnie, wysokie). Chcemy sprawdzić, czy dane dotyczące sposobu słuchania muzyki, codziennych nawyków oraz częstotliwości słuchania konkretnych gatunków muzycznych itd. mogą być pomocne w przewidywaniu poziomu samopoczucia psychicznego, a konkretnie nasilenia objawów depresyjnych.
 
 #### Opis danych
 
@@ -1046,6 +1061,7 @@ metrics <- collect_metrics(class_models)
 metrics %>% 
   arrange(.metric, desc(mean))
 ```
+Niskie wyniki kappa co sugeruje nam już, że modele miały problem z przewidywaniem
 
 #### Najlepsze parametry dla każdego z czterech modeli
 
@@ -1130,3 +1146,167 @@ recipes <- list(
 ```
 
 W tym etapie przygotowujemy osobne przepisy przetwarzania danych dla każdego modelu, wykorzystując pełny zbiór treningowy (bez walidacji krzyżowej). Dzięki temu modele będą mogły uczyć się na większej liczbie danych.
+
+
+### Deklaracja workflowów z ostatecznymi modelami i przepisami
+
+```{r, warning=FALSE}
+# LDA
+final_wf_lda <- workflow() %>%
+  add_model(models_final$lda) %>%
+  add_recipe(recipes$rec_lda)
+
+fit_lda <- fit(final_wf_lda, df_train)
+
+# Random Forest
+final_wf_rf <- workflow() %>%
+  add_model(models_final$rf) %>%
+  add_recipe(recipes$rec_rf)
+
+fit_rf <- fit(final_wf_rf, df_train)
+
+# XGBoost
+final_wf_xgb <- workflow() %>%
+  add_model(models_final$xgb) %>%
+  add_recipe(recipes$rec_xgb)
+
+fit_xgb <- fit(final_wf_xgb, df_train)
+
+# SVM
+final_wf_svm <- workflow() %>%
+  add_model(models_final$svm) %>%
+  add_recipe(recipes$rec_svm)
+
+
+fit_svm <- fit(final_wf_svm, df_train)
+```
+
+Przeprowadzamy ostateczne uczenie modeli, tym razem z konkretnymi hiperparametrami i na całym zbiorze treningowym. Każdy model jest trenowany oddzielnie
+Tworzymy nowe workflowy dla każdego z modeli z ostatecznymi parametrami z osobna. Wszystkie modele mają zbierać metrykę mn_log_loss, którą uznaliśmy za najbardziej adekwatną dla problemu.
+
+### Nauka oraz ocena ostatecznych modeli
+
+```{r}
+levels_order <- c("Low", "Medium", "High")
+
+preds_lda <- bind_cols(
+  predict(fit_lda, df_test, type = "prob"),
+  predict(fit_lda, df_test),
+  df_test %>% select(Depression)
+) %>% adjust_levels()
+
+preds_rf <- bind_cols(
+  predict(fit_rf, df_test, type = "prob"),
+  predict(fit_rf, df_test) ,
+  df_test %>% select(Depression)
+) %>% adjust_levels()
+
+preds_xgb <- bind_cols(
+  predict(fit_xgb, df_test, type = "prob"),
+  predict(fit_xgb, df_test),
+  df_test %>% select(Depression)
+) %>% adjust_levels()
+
+preds_svm <- bind_cols(
+  predict(fit_svm, df_test, type = "prob"),
+  predict(fit_svm, df_test),
+  df_test %>% select(Depression)
+) %>% adjust_levels()
+
+lda_tr <-  bind_cols(
+    predict(fit_lda, df_train, type = "prob"),
+    predict(fit_lda, df_train),
+    df_train %>% select(Depression)
+  ) %>% adjust_levels()
+  
+rf_tr <-  bind_cols(
+  predict(fit_rf, df_train, type = "prob"),
+  predict(fit_rf, df_train),
+  df_train %>% select(Depression)
+) %>% adjust_levels()
+
+xgb_tr  <-  bind_cols(
+  predict(fit_xgb, df_train, type = "prob"),
+  predict(fit_xgb, df_train),
+  df_train %>% select(Depression)
+) %>% adjust_levels()
+
+svm_tr <-  bind_cols(
+  predict(fit_svm, df_train, type = "prob"),
+  predict(fit_svm, df_train),
+  df_train %>% select(Depression)
+) %>% adjust_levels()
+```
+
+W tej części przeprowadziliśmy zebranie predykcji na zbiorze testowym oraz treningowym.
+
+### Macierze kontyngencji dla ostatecznych modeli
+
+```{r}
+conf_df <- tibble(
+  model = c("lda", "rf", "xgb", "svm"),
+  confusion_matrix = list(
+    conf_mat(preds_lda, truth = Depression, estimate = .pred_class),
+    conf_mat(preds_rf,  truth = Depression, estimate = .pred_class),
+    conf_mat(preds_xgb, truth = Depression, estimate = .pred_class),
+    conf_mat(preds_svm, truth = Depression, estimate = .pred_class)
+  )
+)
+
+conf_df$confusion_matrix
+```
+
+Macierze kontygnencji dla kolejno modeli lda, rf, xgb oraz svm dla predykcji na zbiorze testowym. Widać, że modele nie poradziły sobie najlepiej z zadaniem. Największe problemy występują z przewidywaniem klasy medium, może to sugerować, że niedoceniliśmy losowości w samoocenie depresji wśród respondentów i lepszym podziałem mógł okazać się podział na dwie klasy, bądź dalej 3 klasy, ale w innych kwantylach. Pocieszający jest  fakt, że modele nie radzą sobie najgorzej z przewidywaniem klasy low i high osiągając przeciętnie 50% dokładności w tych klasach co jest lepsze niż model losowy, który dałby 33%.
+
+
+### Metryki
+```{r}
+metric_eval <- metric_set(mn_log_loss, kap)
+
+preds_train <- list(
+  lda = lda_tr,
+  rf = rf_tr,
+  xgb = xgb_tr,
+  svm = svm_tr
+)
+
+preds_test <- list(
+  lda = preds_lda,
+  rf  = preds_rf,
+  xgb = preds_xgb,
+  svm = preds_svm
+)
+```
+
+
+```{r}
+train_metrics <- map_dfr(names(preds_train), ~ {
+  get_metrics(preds_train[[.x]]) %>%
+    mutate(model = .x, dataset = "df_train")
+}) # Dla każdego modelu pobieramy metryki w tym przypadku dla zbioru treningowego, niżej będzie to samo dla testowego, dodajemy kolumnę jaki to model oraz jaki zbiór a na koniec łączymy to wszystko w jeden data drame
+
+test_metrics <- map_dfr(names(preds_test), ~ {
+  get_metrics(preds_test[[.x]]) %>%
+    mutate(model = .x, dataset = "df_test")
+})
+
+final_metrics <- bind_rows(train_metrics, test_metrics) %>%
+  select(model, dataset, .metric, .estimate) %>% # wybranie kolumn wszystkich poza .estimator i przearanżowanie kolejności dla lepszej czytelności
+  pivot_wider(names_from = .metric, values_from = .estimate) # pivotujemy po metrykach by móc obserwować obie metryki jedna obok drugiej
+
+final_metrics %>% 
+  arrange(dataset, mn_log_loss, desc(kap))
+```
+
+Ogromne przeuczenie modelu random forest, duże przeuczenie dla xgboost, svm. Model lda jako jedyny wyszedł stabilny dlatego to go wybieramy jako model ostateczny.
+
+
+### Podsumowanie
+
+W przeprowadzonym projekcie klasyfikacji depresji na podstawie nawyków słuchania muzyki wykorzystaliśmy znane nam narzędza eksploracyjne, przygotowania danych, wyboru modeli, strojenia hiperparametrów i walidacji krzyżowej. Dane zostały oczyszczone i uzupełnione metodą imputowania (mice). Przetestowaliśmy wiele podejść do preprocesingu (m.in. normalizacja, PCA) oraz szeroki zakres klasyfikatorów: Naive Bayes, SVM, drzewo decyzyjne, MLP, KNN, Random Forest, XGBoost, LDA.
+
+Najlepsze wyniki uzyskano dla modeli: Random Forest, SVM, XGBoost oraz LDA. W ich przypadku przeprowadzono dokładne strojenie hiperparametrów oraz analizę metryk (mn_log_loss oraz kap). Ostatecznie najbardziej stabilnym modelem okazał się LDA, który osiągnął najlepsze wyniki na zbiorze testowym, jednak nadal z niską dokładnością. Pozostałe modele, mimo że wykazywały lepsze wyniki na zbiorze treningowym, przejawiały silne przeuczenie i nie były w stanie generalizować na nowych danych.
+
+Pomimo pełnego zaangażowania i wykorzystania dostępnych środków, modele nie osiągnęły oczekiwanej stabilności i jednoznacznej przewagi jednego podejścia, co wynika prawdopodobnie z ograniczeń samego zbioru danych – w szczególności: niewielkiej liczby obserwacji, dużej liczby zmiennych po imputacji, charakterystyką przeprowadzonej ankiety (tj. respondenci odpowiadali wedle własnej samooceny, nie według oceny osoby z wykształceniem psychologicznym) oraz złożonej, nieliniowej zależności pomiędzy słuchaniem muzyki a stanem emocjonalnym.
+
+Naszym zdaniem projekt może nie jest idealny, ale napewno nie jest też rozczarowywujący, ponieważ jak na jakość danych udało się odnaleźć jakiekolwiek zależności w tym zbiorze dostając przy tym predykcje, które są lepsze niż takie w pełni losowe.
