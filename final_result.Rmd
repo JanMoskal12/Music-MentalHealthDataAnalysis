@@ -2,7 +2,10 @@
 title: "Music & Mental Health"
 author: "Jan Moskal i Szymon Makulec"
 date: "2025-05-31"
-output: html_document
+output:
+  html_document:
+    toc: true
+    toc_float: true
 ---
 
 ```{r setup, echo=FALSE}
@@ -323,7 +326,6 @@ W zbiorze danych występują braki w siedmiu zmiennych. Najwięcej braków odnot
 
 ### Wykresy dotyczące zmiennych opisujących respondentów i ich ogólne zwyczaje muzyczne
 
-#### Rozkład wieku słuchacza
 
 ```{r, echo=FALSE, warning=FALSE}
 df %>% 
@@ -334,7 +336,6 @@ df %>%
 
 Wiek słuchaczy jest prawostronnie asymetryczny, z większością osób w przedziale 18-30 lat. Widać również trochę osób w wieku 50+.
 
-#### Związek między wiekiem słuchającego a poziomem depresji
 
 ```{r, echo=FALSE, warning=FALSE}
 df %>% 
@@ -349,7 +350,6 @@ df %>%
 
 Dla niskiego poziomu depresji mamy największą różnorodność wieku słuchaczy co można zobaczyć po odległości między kwartylami. Dla średniego i wysokiego poziomu depresji mamy bardzo podobne rozkłady wieku. Im wyższy poziom depresji tym mediana wieku jest wyższa jednak nie jest ona dużo większa więc nie uznajemy tego za istotną różnicę.
 
-#### Rozkład preferowanego serwisu streamingowego
 
 ```{r, echo=FALSE}
 plot_distribution(data, `Primary streaming service`, "Rozkład preferowanego serwisu streamingowego", "Preferowany serwis streamingowy")
@@ -357,15 +357,12 @@ plot_distribution(data, `Primary streaming service`, "Rozkład preferowanego ser
 
 Większość słuchaczy korzysta z Spotify, a następnie z YouTube i Apple Music. Co ciekawe jest również trzecia co do wielkości grupa słuchaczy, która nie słucha muzyki w serwisach streamingowych.
 
-#### Proporcje platform streamingowych wg poziomu depresji
-
 ```{r, echo=FALSE}
 plot_prop_bar(data, `Primary streaming service`, "Proporcje platform streamingowych wg poziomu depresji", "Poziom depresji", "Udział", "Platforma streamingowa")
 ```
 
 Dla kolejnych poziomów depresji zwiększa się ilość osób korzystających ze Spotify, a zmniejsza się ilość osób korzystających z YouTube Music oraz zmniejsza się liczba osób, które nie korzystają z serwisów streamingowych.
 
-#### Rozkład dziennego czasu słuchania muzyki
 
 ```{r, echo=FALSE}
 data %>% 
@@ -377,7 +374,6 @@ data %>%
 
 Czas słuchania muzyki jest prawostronnie asymetryczny, z większością osób słuchających muzyki od 1 do 4 godzin dziennie. Widać również kilka osób słuchających muzyki przez ponad 10 godzin dziennie.
 
-#### Związek między liczbą przesłuchanych godzin a poziomem depresji
 
 ```{r, echo=FALSE}
 plot_boxplot(data, Depression, `Hours per day`, "Związek między liczbą przesłuchanych godzin a poziomem depresji", "Poziom depresji", "Liczba godzin")
@@ -385,7 +381,6 @@ plot_boxplot(data, Depression, `Hours per day`, "Związek między liczbą przes�
 
 Osoby z wyższym poziomem depresji mają tendencję do słuchania muzyki przez więcej godzin dziennie niż te z niższym poziomem depresji.
 
-#### Rozkład ulubionego gatunku muzycznego
 
 ```{r, echo=FALSE}
 plot_distribution(data, `Fav genre`, "Rozkład ulubionego gatunku muzycznego", "Ulubiony gatunek muzyczny", fill_colors = colors)
@@ -393,7 +388,6 @@ plot_distribution(data, `Fav genre`, "Rozkład ulubionego gatunku muzycznego", "
 
 Ulubionymi gatunkami respondentów są głównie Rock, Pop oraz Metal.
 
-#### Udział ulubionego gatunku wg poziomu depresji
 
 ```{r, echo=FALSE}
 plot_prop_bar(data, `Fav genre`, "Udział ulubionego gatunku wg poziomu depresji", "Poziom depresji", "Udział", "Gatunek")
@@ -401,7 +395,6 @@ plot_prop_bar(data, `Fav genre`, "Udział ulubionego gatunku wg poziomu depresji
 
 W grupie z wysoką depresją jest mniej osób słuchających metalu, muzyki z gier wideo, muzyki klasyczej, R&B. Rośnie za to liczba osób słuchających gatunków takich jak rock oraz hip hop.
 
-#### Rozkład liczby uderzeń na minutę (BPM)
 
 ```{r, echo=FALSE}
 data %>%
@@ -415,15 +408,11 @@ data %>%
 
 Liczba uderzeń na minutę jest w miarę symetryczna. Widoczne są obserwacje podejrzane jak BPM równe 0. Wartość BPM oscyluje wokół 120.
 
-#### Związek między BPM ulubionego gatunku a poziomem depresji
-
 ```{r, echo=FALSE}
 plot_boxplot(data %>% filter(BPM < 500), Depression, BPM, "Związek między BPM ulubionego gatunku a poziomem depresji", "Poziom depresji", "Uderzenia na minutę (BPM)")
 ```
 
 Nie widać znaczącego wpływu BPM na poziom depresji. Istnieje jedynie podejrzenie, że osoby z niskim poziomem depresji słuchają muzyki o średnio niższym BPM.
-
-#### Rozkład słuchania muzyki podczas pracy/nauki
 
 ```{r, echo=FALSE}
 plot_distribution(data, `While working`, "Rozkład słuchania muzyki podczas pracy/nauki", "Słuchanie podczas pracy/nauki")
@@ -431,15 +420,12 @@ plot_distribution(data, `While working`, "Rozkład słuchania muzyki podczas pra
 
 Znacząca większość osób słucha muzyki podczas pracy lub nauki.
 
-#### Proporcje słuchania muzyki podczas pracy/nauki wg poziomu depresji
-
 ```{r, echo=FALSE}
 plot_prop_bar(data, `While working`, "Proporcje słuchania muzyki podczas pracy/nauki wg poziomu depresji", "Poziom depresji", "Udział", "Słuchanie podczas pracy/nauki")
 ```
 
 Osoby z wyższym poziomem depresji częściej słuchają muzyki podczas pracy lub nauki.
 
-#### Rozkład gry na instrumencie
 
 ```{r, echo=FALSE}
 plot_distribution(data, Instrumentalist, "Rozkład gry na instrumencie", "Regularne granie na instrumencie")
@@ -447,15 +433,11 @@ plot_distribution(data, Instrumentalist, "Rozkład gry na instrumencie", "Regula
 
 Jak można było się spodziewać znacząca większość osób nie gra na instrumencie. Jednakże ilość osób grających na instrumentach jest i tak dosyć duża.
 
-#### Proporcje gry na instrumencie wg poziomu depresji
-
 ```{r, echo=FALSE}
 plot_prop_bar(data, Instrumentalist, "Proporcje gry na instrumencie wg poziomu depresji", "Poziom depresji", "Udział", "Gra na instrumencie")
 ```
 
 We wszystkich grupach ilość osób grających na instrumencie jest zbliżona.
-
-#### Rozkład komponowania muzyki
 
 ```{r, echo=FALSE}
 plot_distribution(data, Composer, "Rozkład komponowania muzyki", "Komponowanie muzyki")
@@ -463,15 +445,11 @@ plot_distribution(data, Composer, "Rozkład komponowania muzyki", "Komponowanie 
 
 Znacząca większość osób nie komponuje muzyki, osób komponujących jest około 110 co i tak jest wysokim wynikiem.
 
-#### Proporcje komponowania muzyki wg poziomu depresji
-
 ```{r, echo=FALSE}
 plot_prop_bar(data, Composer, "Proporcje komponowania muzyki wg poziomu depresji", "Poziom depresji", "Udział", "Komponowanie muzyki")
 ```
 
 W grupie osób z wysoką depresją jest więcej osób komponujących muzykę. Może to jednak wynikać z faktu, że niewiele jest obserwacji w tej grupie.
-
-#### Rozkład eksplorowania artystów/gatunków
 
 ```{r, echo=FALSE}
 plot_distribution(data, Exploratory, "Rozkład eksplorowania artystów/gatunków", "Eksplorowanie artystów/gatunków")
@@ -479,23 +457,17 @@ plot_distribution(data, Exploratory, "Rozkład eksplorowania artystów/gatunków
 
 Około 520 osób aktywnie eksploruje nowe gatunki oraz artystów. Około 210 osób tego nie czyni.
 
-#### Proporcje eksplorowania artystów/gatunków wg poziomu depresji
-
 ```{r,echo=FALSE}
 plot_prop_bar(data, Exploratory, "Proporcje eksplorowania artystów/gatunków wg depresji", "Poziom depresji", "Udział", "Eksplorowanie")
 ```
 
 Osoby z wyższym poziomem depresji częściej eksplorują nowych artystów i gatunki muzyczne.
 
-#### Rozkład słuchania w obcym języku
-
 ```{r, echo=FALSE}
 plot_distribution(data, `Foreign languages`, "Rozkład słuchania w obcym języku", "Słuchanie w obcym języku")
 ```
 
 Około 400 osób słucha muzyki w języku obcym zaś około 330 osób słucha muzyki jedynie w swoim ojczystym języku.
-
-#### Proporcje słuchania w obcym języku wg depresji
 
 ```{r, echo=FALSE}
 plot_prop_bar(data, `Foreign languages`, "Proporcje słuchania w obcym języku wg depresji", "Poziom depresji", "Udział", "Słuchanie w obcym języku")
@@ -536,7 +508,6 @@ long_bin_all <- data %>%
                   mutate(Genre = str_remove_all(Genre, "Frequency \\[|\\]"))
 ```
 
-#### Liczba osób słuchających danego gatunku z określoną częstotliwością słuchania
 
 ```{r, echo=FALSE}
 long_freq %>% 
@@ -559,15 +530,11 @@ plot_mean_barplot(long_freq_count, "count", "Średnia liczba osób słuchającyc
 
 Średnia liczba osób przypadająca na poszczególne poziomy częstotliwości słuchania maleje wraz ze wzrostem intensywności słuchania. Najwięcej osób średnio deklaruje, że nigdy nie słucha danego gatunku muzyki (268,69), a najmniej – że słucha go bardzo często (113,81). Może to sugerować, że większość gatunków muzycznych jest słuchana okazjonalnie lub wcale, a intensywne słuchanie ogranicza się do wybranych, popularnych stylów.
 
-#### Średni poziom depresji w zależności od gatunku i częstotliwości słuchania
-
 ```{r, echo=FALSE}
 plot_mean_heatmap(df_depr, "Depression", "Średni poziom depresji w zależności od gatunku i częstotliwości słuchania", "Średni poziom depresji")
 ```
 
 Po zdekodowaniu poziomu depresji (Low = 0, Medium = 1, High = 2) zauważalne są niewielkie, ale interesujące różnice w średnich wartościach w zależności od gatunku i częstotliwości słuchania muzyki. Najwyższy poziom depresji (1.19) występuje u osób czasami słuchających metalu, natomiast najniższy (0.64) – u osób bardzo często słuchających gospel, co może sugerować możliwy wpływ duchowości lub wieku słuchaczy. Osoby unikające gatunków takich jak metal, rap czy hip-hop również charakteryzują się niższym średnim poziomem depresji, choć może to wynikać z innych czynników – jak wiek, styl życia czy preferencje kulturowe. Ogólnie poziomy depresji oscylują wokół wartości 1, a różnice nie są duże, jednak dla niektórych gatunków zauważalne są pewne wzorce.
-
-#### Średni poziom depresji dla każdej częstotliwości słuchania
 
 ```{r, echo=FALSE}
 plot_mean_barplot(long_freq_depr, "Depression", "Średni poziom depresji dla każdej częstotliwości słuchania", "Średni poziom depresji") + 
@@ -576,15 +543,11 @@ plot_mean_barplot(long_freq_depr, "Depression", "Średni poziom depresji dla ka�
 
 Średni poziom depresji nieznacznie (nieistotnie) wzrasta wraz ze zwiększającą się częstotliwością słuchania muzyki. Choć różnice są niewielkie, może to sugerować, że osoby częściej sięgające po muzykę – zwłaszcza intensywnie – częściej też deklarują średni lub wysoki poziom depresji. Może to wynikać z faktu, że muzyka bywa wykorzystywana jako forma wsparcia emocjonalnego, szczególnie przez osoby zmagające się z pogorszonym samopoczuciem. To jednak tak drobne zmiany, że trudno wyciągać z nich pewne wnioski.
 
-#### Średnia liczba godzin słuchania muzyki według gatunku i częstotliwości słuchania
-
 ```{r, echo=FALSE}
 plot_mean_heatmap(data, "Hours per day", "Średnia liczba godzin słuchania muzyki według gatunku i częstotliwości słuchania", "Liczba godzin")
 ```
 
 Z wykresu wynika, że jeśli dana osoba deklaruje częste słuchanie muzyki danego gatunku, to więcej czasu jej poświęca ogółem — co jest zgodne z intuicją. Gatunki takie jak rap, muzyka latynoska i hip-hop osiągają najwyższe średnie wartości godzin wśród osób słuchających muzyki bardzo często, co może świadczyć o ich intensywnej konsumpcji. Warto jednak zwrócić uwagę, że nawet osoby, które deklarują brak kontaktu z danym gatunkiem, często ogółem spędzają na słuchaniu muzyki znaczną liczbę godzin. Może to sugerować, że ich preferencje są silnie skierowane ku innym gatunkom, a nie że unikają muzyki jako takiej. Różnice w średniej liczbie godzin między grupami częstotliwości są widoczne, ale w wielu przypadkach niezbyt duże.
-
-#### Średni czas słuchania muzyki według częstotliwości słuchania
 
 ```{r, echo=FALSE}
 plot_mean_barplot(long_freq, "Hours per day", "Średni czas słuchania muzyki według częstotliwości słuchania", "Liczba godzin") + 
@@ -593,15 +556,11 @@ plot_mean_barplot(long_freq, "Hours per day", "Średni czas słuchania muzyki we
 
 Zanim przejdziemy do analizy, warto zaznaczyć, że słupek „Never” nie odnosi się do osób, które w ogóle nie słuchają muzyki, lecz do liczby gatunków, których ktoś nie słucha wcale. Osoby deklarujące bardzo częste słuchanie muzyki spędzają na tym najwięcej czasu, podczas gdy osoby słuchające jej rzadziej poświęcają jej odpowiednio mniej czasu. Każda kolejna grupa częstotliwości charakteryzuje się nieco wyższym średnim czasem słuchania, co świadczy o spójności deklaracji z rzeczywistym zaangażowaniem czasowym. Może to również potwierdzać, że częstotliwość słuchania stanowi dobry wskaźnik ogólnej intensywności kontaktu z muzyką. Wzrost ten jest jednak stosunkowo nieduży.
 
-#### Średni wiek słuchającego w zależności od gatunku i częstotliwości słuchania
-
 ```{r, echo=FALSE}
 plot_mean_heatmap(df, "Age", "Średni wiek słuchającego w zależności od gatunku i częstotliwości słuchania", "Wiek")
 ```
 
 Ogólnie można zauważyć, że osoby, które słuchają muzyki bardzo często, są zazwyczaj młodsze od tych, które robią to rzadziej lub deklarują brak kontaktu z danym gatunkiem. Najniższe średnie wieki występują wśród intensywnych słuchaczy gatunków takich jak K-pop, pop, rap, video game music czy lofi, co potwierdza ich popularność wśród młodszych odbiorców. Z kolei najwyższe wartości średniego wieku pojawiają się wśród osób słuchających częściej muzyki klasycznej, gospel, country czy rocka, co może wskazywać na większe zainteresowanie tymi gatunkami wśród starszych grup. Wzorce te są spójne z ogólnymi trendami demograficznymi w odbiorze muzyki.
-
-#### Średni wiek słuchającego według częstotliwości słuchania
 
 ```{r, echo=FALSE}
 plot_mean_barplot(long_freq_age, "Age", "Średni wiek słuchającego według częstotliwości słuchania", "Wiek") + 
@@ -628,8 +587,6 @@ long_freq %>%
 
 Silna preferencja ulubionego gatunku wiąże się z jego regularnym słuchaniem (Very frequently). Oczywiście dla pozostałych kategorii częstotliwości (Sometimes, Rarely, Never) udział ulubionych gatunków jest znikomy lub zerowy. Wizualizacja pokazuje, że osoby słuchające bardzo często gatunków takich jak metal, country czy rock, znacznie częściej wskazują je jako ulubione – w przeciwieństwie do słuchaczy lofi, latin czy rapu. Może to wynikać z faktu, że metal, country i rock są silnie związane z konkretnymi subkulturami i tożsamością słuchaczy, częściej spotykaną wśród starszych odbiorców z bardziej ugruntowanymi gustami muzycznymi. Natomiast młodsi słuchacze, którzy dominują wśród fanów rapu, lofi czy latino, często słuchają wielu różnych gatunków, niekoniecznie mając jeden ulubiony – co może odzwierciedlać większą otwartość i zmienność preferencji. Dodatkowo, gatunki takie jak lofi czy latin mogą być słuchane bardziej użytkowo (np. do nauki, relaksu, zabawy), a nie emocjonalnie, co także może ograniczać ich postrzeganie jako „ulubionych”.
 
-#### Udział muzyków wśród słuchaczy danego gatunku i częstotliwości słuchania
-
 ```{r, echo=FALSE}
 plot_binary_heatmap(long_bin_all, "Instrumentalist") +
   labs(title = "Udział muzyków wśród słuchaczy danego gatunku i częstotliwości słuchania", fill = "Udział muzyków")
@@ -637,7 +594,6 @@ plot_binary_heatmap(long_bin_all, "Instrumentalist") +
 
 Wykres pokazuje, że najwyższy udział muzyków wśród słuchaczy „Very frequently” dotyczy muzyki klasycznej (60%) i jazzu (57%) – oba te gatunki są silnie powiązane z formalnym wykształceniem muzycznym, wymagają dużych umiejętności technicznych i są obecne w edukacji muzycznej, co przyciąga osoby aktywnie grające. Odwrotnie sytuacja wygląda dla country, hip-hopu i R&B, gdzie udział muzyków jest relatywnie niski nawet wśród częstych słuchaczy – sugeruje to, że te gatunki są bardziej konsumenckie, tzn. słuchane głównie przez osoby nieuprawiające muzyki. Ciekawym zjawiskiem jest to, że osoby, które w ogóle nie słuchają popu, R&B, rapu, hip-hopu czy rocka, częściej są muzykami – może to wynikać z bardziej klasycznego lub niszowego gustu muzycznego muzyków, którzy unikają komercyjnych gatunków na rzecz tych bardziej technicznych, instrumentalnych lub poważnych.
 
-#### Udział kompozytorów wśród słuchaczy danego gatunku i częstotliwości słuchania
 
 ```{r, echo=FALSE}
 plot_binary_heatmap(long_bin_all, "Composer") +
@@ -655,8 +611,6 @@ plot_binary_heatmap(long_bin_all, "While working") +
 
 Większość często słuchanych gatunków muzycznych jest również wykorzystywana podczas pracy lub nauki. Nieco niższy udział (0.82 i mniej) obserwujemy w przypadku takich gatunków jak country, pop, metal czy rock – są to zazwyczaj utwory bardziej dynamiczne i angażujące, co może rozpraszać, dlatego rzadziej towarzyszą nauce czy pracy. Na tle innych wyraźnie wyróżnia się lofi, który osiąga prawie 90% udziału w słuchaniu podczas pracy/nauki. Co ciekawe, wśród osób, które go nie słuchają na co dzień, współczynnik ten jest najniższy w całym zestawieniu (0.68). Może to wynikać z faktu, że lofi to muzyka relaksująca, mało angażująca i najczęściej pozbawiona słów – jakby stworzona do towarzyszenia w skupieniu i pracy umysłowej.
 
-#### Udział aktywnie eksplorujących nowe gatunki i autorów względem gatunku i częstotliwości słuchania
-
 ```{r, echo=FALSE}
 plot_binary_heatmap(long_bin_all, "Exploratory") +
   labs(title = "Udział aktywnie eksplorujących nowe gatunki i autorów względem gatunku i częstotliwości słuchania", fill = "Udział eksplorujących")
@@ -664,7 +618,6 @@ plot_binary_heatmap(long_bin_all, "Exploratory") +
 
 Osoby często słuchające rapu i jazzu wykazują wysoką skłonność do eksplorowania nowych wykonawców i gatunków, co może wynikać z dynamicznego charakteru tych stylów – rap nieustannie się zmienia i przyciąga nowymi trendami, a jazz opiera się na improwizacji i fuzjach, co naturalnie sprzyja otwartości na nowe brzmienia. W przeciwieństwie do tego, osoby bardzo często słuchające gospelu mają niski współczynnik eksploracji (0,5), co może być związane z silnym emocjonalnym i duchowym przywiązaniem do konkretnych utworów i wykonawców – w tym przypadku muzyka pełni bardziej stałą, rytualną funkcję niż rozrywkową. Ciekawa jest też sytuacja popu – wśród osób, które deklarują, że go nie słuchają, eksploracja muzyczna jest bardzo niska. Może to wynikać z faktu, że pop jest wszędzie obecny i trudno go zupełnie uniknąć; jeśli ktoś to robi, najczęściej świadomie ogranicza się do jednego, alternatywnego stylu, rezygnując z poszukiwania nowych brzmień.
 
-#### Udział słuchaczy muzyki w językach obcych dla nich względem gatunku i częstotliwości słuchania
 
 ```{r, echo=FALSE}
 plot_binary_heatmap(long_bin_all, "Foreign languages") +
@@ -1061,7 +1014,9 @@ metrics <- collect_metrics(class_models)
 metrics %>% 
   arrange(.metric, desc(mean))
 ```
-Niskie wyniki kappa co sugeruje nam już, że modele miały problem z przewidywaniem
+Niskie wyniki kappa co sugeruje nam już, że modele miały problem z przewidywaniem. Mimo to nie zrażamy się i wybieramy modele najlepsze pod względem metryki mn_log_loss.
+
+### Trenowanie modeli z najlepszymi parametrami
 
 #### Najlepsze parametry dla każdego z czterech modeli
 
@@ -1148,7 +1103,7 @@ recipes <- list(
 W tym etapie przygotowujemy osobne przepisy przetwarzania danych dla każdego modelu, wykorzystując pełny zbiór treningowy (bez walidacji krzyżowej). Dzięki temu modele będą mogły uczyć się na większej liczbie danych.
 
 
-### Deklaracja workflowów z ostatecznymi modelami i przepisami
+#### Deklaracja workflowów oraz ostateczne uczenie
 
 ```{r, warning=FALSE}
 # LDA
@@ -1184,7 +1139,7 @@ fit_svm <- fit(final_wf_svm, df_train)
 Przeprowadzamy ostateczne uczenie modeli, tym razem z konkretnymi hiperparametrami i na całym zbiorze treningowym. Każdy model jest trenowany oddzielnie
 Tworzymy nowe workflowy dla każdego z modeli z ostatecznymi parametrami z osobna. Wszystkie modele mają zbierać metrykę mn_log_loss, którą uznaliśmy za najbardziej adekwatną dla problemu.
 
-### Nauka oraz ocena ostatecznych modeli
+#### Predykcje ostatecznych modeli na zbiorze testowym i treningowym
 
 ```{r}
 levels_order <- c("Low", "Medium", "High")
@@ -1238,9 +1193,10 @@ svm_tr <-  bind_cols(
 ) %>% adjust_levels()
 ```
 
+
 W tej części przeprowadziliśmy zebranie predykcji na zbiorze testowym oraz treningowym.
 
-### Macierze kontyngencji dla ostatecznych modeli
+#### Macierze pomyłek dla ostatecznych modeli
 
 ```{r}
 conf_df <- tibble(
@@ -1256,10 +1212,12 @@ conf_df <- tibble(
 conf_df$confusion_matrix
 ```
 
-Macierze kontygnencji dla kolejno modeli lda, rf, xgb oraz svm dla predykcji na zbiorze testowym. Widać, że modele nie poradziły sobie najlepiej z zadaniem. Największe problemy występują z przewidywaniem klasy medium, może to sugerować, że niedoceniliśmy losowości w samoocenie depresji wśród respondentów i lepszym podziałem mógł okazać się podział na dwie klasy, bądź dalej 3 klasy, ale w innych kwantylach. Pocieszający jest  fakt, że modele nie radzą sobie najgorzej z przewidywaniem klasy low i high osiągając przeciętnie 50% dokładności w tych klasach co jest lepsze niż model losowy, który dałby 33%.
+Macierze pomyłek dla kolejno modeli lda, rf, xgb oraz svm dla predykcji na zbiorze testowym. Widać, że modele nie poradziły sobie najlepiej z zadaniem. Największe problemy występują z przewidywaniem klasy medium, może to sugerować, że niedoceniliśmy losowości w samoocenie depresji wśród respondentów i lepszym podziałem mógł okazać się podział na dwie klasy, bądź dalej 3 klasy, ale w innych kwantylach. Pocieszający jest  fakt, że modele nie radzą sobie najgorzej z przewidywaniem klasy low i high osiągając przeciętnie 50% dokładności w tych klasach co jest lepsze niż model losowy, który dałby 33%.
 
 
-### Metryki
+#### Wyniki przy użyciu metryki mn_log_loss i kappa
+
+
 ```{r}
 metric_eval <- metric_set(mn_log_loss, kap)
 
@@ -1278,6 +1236,7 @@ preds_test <- list(
 )
 ```
 
+Zebranie wyników w listy
 
 ```{r}
 train_metrics <- map_dfr(names(preds_train), ~ {
@@ -1301,7 +1260,9 @@ final_metrics %>%
 Ogromne przeuczenie modelu random forest, duże przeuczenie dla xgboost, svm. Model lda jako jedyny wyszedł stabilny dlatego to go wybieramy jako model ostateczny.
 
 
-### Podsumowanie
+## Podsumowanie
+
+Raport okazał się bardziej objętościowy niż początkowo planowaliśmy i dlatego nie zamieszczaliśmy części mniej znaczącego kodu skupiając się bardziej na samych wynikach (include = FALSE).
 
 W przeprowadzonym projekcie klasyfikacji depresji na podstawie nawyków słuchania muzyki wykorzystaliśmy znane nam narzędza eksploracyjne, przygotowania danych, wyboru modeli, strojenia hiperparametrów i walidacji krzyżowej. Dane zostały oczyszczone i uzupełnione metodą imputowania (mice). Przetestowaliśmy wiele podejść do preprocesingu (m.in. normalizacja, PCA) oraz szeroki zakres klasyfikatorów: Naive Bayes, SVM, drzewo decyzyjne, MLP, KNN, Random Forest, XGBoost, LDA.
 
